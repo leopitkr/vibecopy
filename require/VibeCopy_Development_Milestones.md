@@ -2,6 +2,8 @@
 
 작성일: 2026-02-13
 
+> **cursor.rule 준수:** 단계 완료 시 해당 체크박스를 `- [x]` 로 표시하고 **같은 줄에** `(commit: <SHORT_HASH>)` 를 반드시 기록. 절차: `pnpm finish` 사용 및 필요 시 `docs/MILESTONE_WORKFLOW.md` 참고.
+
 ---
 
 \# 📌 전체
