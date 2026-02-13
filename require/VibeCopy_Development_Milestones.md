@@ -23,7 +23,7 @@
 ## 환경 구축
 
 -   [x] Next.js 프로젝트 생성 (App Router)  (commit: <SHORT_HASH>)
--   [x] TypeScript 설정 확인  (commit: <SHORT_HASH>)
+-   [x] TypeScript 설정 확인  (commit: 6d0c5ea)
 -   [ ] TailwindCSS 설정
 -   [ ] ESLint / Prettier 설정
 -   [ ] 환경변수(.env.local) 구조 정의
