@@ -46,7 +46,7 @@
 - [ ] Generations 테이블 생성
 - [ ] Subscription 테이블 생성
 - [ ] RLS 정책 설정
-- [ ] Auth 연동 테스트
+- [x] Auth 연동 테스트  (commit: f6f6158)
 
 ## 계정 기능
 
