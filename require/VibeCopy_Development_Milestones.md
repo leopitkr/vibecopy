@@ -61,7 +61,7 @@
 
 ## API 구현
 
-- [ ] /api/generate 라우트 생성
+- [x] /api/generate 라우트 생성  (commit: 587c5f8)
 - [ ] OpenAI API 연동
 - [ ] 프롬프트 템플릿 작성 (바이브 프리셋 포함)
 - [ ] JSON 형태 결과 강제 구조화
