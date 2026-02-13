@@ -38,10 +38,12 @@ export type GenerateSuccess = {
 
 export type ApiErrorCode =
   | "BAD_REQUEST"
+  | "INPUT_TOO_LONG"
   | "UNAUTHORIZED"
   | "INSUFFICIENT_CREDITS"
   | "IDEMPOTENCY_CONFLICT"
   | "DAILY_LIMIT_EXCEEDED"
+  | "RATE_LIMIT_EXCEEDED"
   | "AI_FAILED"
   | "INTERNAL";
 

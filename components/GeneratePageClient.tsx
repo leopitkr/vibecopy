@@ -16,6 +16,8 @@ import { CopyPackageView } from "./CopyPackageView";
 
 type SourceType = "url" | "manual";
 
+const INPUT_VALUE_MAX_LENGTH = 1000;
+
 /*
  * Manual test steps (add as comment block in page):
  * (UI-1) Authenticated user with credits >0 can generate and sees results
@@ -23,6 +25,7 @@ type SourceType = "url" | "manual";
  * (UI-3) Network / AI failure -> shows error and retry button; retry reuses idempotencyKey and does not double-charge
  * (UI-4) Copy buttons copy correct text (unit test or manual)
  * (UI-5) Loading state appears and prevents duplicate submits
+ * (C-1) Input over 1000 chars -> counter shows over limit, submit disabled; API returns INPUT_TOO_LONG if bypassed
  */
 
 export function GeneratePageClient() {
@@ -77,11 +80,22 @@ export function GeneratePageClient() {
     return parts.join("\n\n");
   }, [sourceType, urlValue, productName, bullets, price, targetAudience]);
 
+  const inputLength = buildInputValue().length;
+  const inputTooLong = inputLength > INPUT_VALUE_MAX_LENGTH;
+  const inputValid = inputLength > 0 && !inputTooLong;
+
   const handleSubmit = useCallback(
     async (idempotencyKey: string) => {
       const inputValue = buildInputValue();
       if (!inputValue.trim()) {
         setError({ code: "BAD_REQUEST", message: "입력 내용을 입력해 주세요." });
+        return;
+      }
+      if (inputValue.length > INPUT_VALUE_MAX_LENGTH) {
+        setError({
+          code: "INPUT_TOO_LONG",
+          message: "입력 길이가 너무 깁니다. 핵심만 요약해 주세요.",
+        });
         return;
       }
       setError(null);
@@ -140,7 +154,10 @@ export function GeneratePageClient() {
   const insufficient =
     creditsLeft !== null && creditsLeft <= 0 && !meLoading;
   const canSubmit =
-    !meLoading && !loading && (creditsLeft === null || creditsLeft > 0);
+    !meLoading &&
+    !loading &&
+    inputValid &&
+    (creditsLeft === null || creditsLeft > 0);
 
   return (
     <main className="min-h-screen p-4 md:p-6">
@@ -286,6 +303,15 @@ export function GeneratePageClient() {
                 />
               </div>
             )}
+            <p
+              className={`mt-1 text-xs ${inputTooLong ? "text-red-600 dark:text-red-400" : "text-gray-500 dark:text-gray-400"}`}
+              aria-live="polite"
+            >
+              {sourceType === "url"
+                ? `URL 입력: ${urlValue.length} / ${INPUT_VALUE_MAX_LENGTH}자`
+                : `전체 입력: ${inputLength} / ${INPUT_VALUE_MAX_LENGTH}자`}
+              {inputTooLong && " (초과 시 생성할 수 없습니다)"}
+            </p>
           </fieldset>
 
           <ChannelPicker value={channel} onChange={setChannel} disabled={loading} />

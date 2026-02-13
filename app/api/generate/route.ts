@@ -1,4 +1,5 @@
 import type OpenAI from "openai";
+import { createHash } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { debitCredits, refundCredits } from "@/lib/db/credits";
 import {
@@ -11,6 +12,9 @@ import { checkRateLimit, type PlanType } from "@/lib/rateLimit";
 import { z } from "zod";
 import { NextResponse } from "next/server";
 
+const INPUT_VALUE_MAX_LENGTH = 1000;
+const CACHE_WINDOW_HOURS = 24;
+
 // Manual test scenarios (run with valid session cookie):
 // (A) Free user: 4th call in same day with unique idempotency_key -> 429 DAILY_LIMIT_EXCEEDED.
 // (B) User with 0 credit_balance -> 402 INSUFFICIENT_CREDITS.
@@ -22,6 +26,11 @@ import { NextResponse } from "next/server";
 // (R-2) Free vs Pro -> different limits (Pro 30/min, 500/hr).
 // (R-3) Rate limit 429 does not deduct credit.
 // (R-4) History unaffected.
+// Cost control (Phase 5):
+// (C-1) INPUT_TOO_LONG: exceed input length -> 400 INPUT_TOO_LONG, no debit, no OpenAI call.
+// (C-2) Token cap: max_output_tokens 900; JSON schema still valid.
+// (C-3) Cache hit: same payload twice (new idempotency_key) -> 2nd returns cacheHit true, no debit.
+// (C-4) Cache per-user: different user same input -> not cache hit.
 
 const channelEnum = z.enum([
   "smartstore",
@@ -35,7 +44,7 @@ const vibeEnum = z.enum(["trust", "review", "impulse", "premium", "groupbuy"]);
 const requestSchema = z.object({
   idempotency_key: z.string().min(1).max(256),
   input_type: z.enum(["url", "text"]),
-  input_value: z.string().min(1).max(10000),
+  input_value: z.string().min(1).max(INPUT_VALUE_MAX_LENGTH),
   channel: channelEnum,
   vibe: vibeEnum,
 });
@@ -138,6 +147,22 @@ export async function POST(request: Request) {
 
   const parsed = requestSchema.safeParse(body);
   if (!parsed.success) {
+    const inputTooLong = parsed.error.issues.some(
+      (i) =>
+        i.path.join(".") === "input_value" &&
+        (i.code === "too_big" || String(i.message).includes("1000"))
+    );
+    if (inputTooLong) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "INPUT_TOO_LONG",
+            message: "입력 길이가 너무 깁니다. 핵심만 요약해 주세요.",
+          },
+        },
+        { status: 400 }
+      );
+    }
     const msg =
       parsed.error.issues?.map((i) => i.message).join("; ") ??
       parsed.error.message;
@@ -149,6 +174,48 @@ export async function POST(request: Request) {
 
   const { idempotency_key, input_type, input_value, channel, vibe } =
     parsed.data;
+
+  const normalizedInput = input_value.trim();
+  const cacheKeyPayload = JSON.stringify({
+    channel,
+    vibe,
+    normalized_input: normalizedInput,
+  });
+  const cache_key =
+    createHash("sha256").update(cacheKeyPayload).digest("hex");
+
+  const windowStart = new Date(Date.now() - CACHE_WINDOW_HOURS * 60 * 60 * 1000);
+  const { data: cached } = await supabase
+    .from("generations")
+    .select("id, output_json")
+    .eq("user_id", user.id)
+    .eq("cache_key", cache_key)
+    .gte("created_at", windowStart.toISOString())
+    .not("output_json", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (cached?.output_json) {
+    const { data: profileRow } = await supabase
+      .from("users")
+      .select("credit_balance")
+      .eq("id", user.id)
+      .single();
+    const balance = profileRow?.credit_balance ?? 0;
+    return NextResponse.json(
+      {
+        ok: true,
+        data: {
+          generationId: cached.id,
+          output: cached.output_json,
+          credits: { before: balance, after: balance },
+        },
+        cacheHit: true,
+      },
+      { status: 200 }
+    );
+  }
 
   const debit = await debitCredits(supabase, {
     userId: user.id,
@@ -311,6 +378,7 @@ export async function POST(request: Request) {
       vibe,
       input_type,
       input_value,
+      cache_key,
       output_json: output as unknown as Record<string, unknown>,
       model: OPENAI_MODEL,
       input_tokens: usage?.prompt_tokens ?? null,
