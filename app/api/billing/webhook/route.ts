@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
+import { writeErrorLog } from "@/lib/logging/errorLog";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import {
   PLAN_CREDITS,
@@ -50,6 +51,22 @@ export async function POST(request: Request) {
     event = stripe.webhooks.constructEvent(rawBody, signature, secret);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Invalid signature";
+    const supabase = createServiceRoleClient();
+    try {
+      await writeErrorLog(supabase, {
+        route: "/api/billing/webhook",
+        method: "POST",
+        status: 400,
+        error_code: "WEBHOOK_SIGNATURE_INVALID",
+        message: msg,
+        details: { reason: "signature_verification_failed" },
+        user_id: null,
+        ip: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+        user_agent: request.headers.get("user-agent") ?? null,
+      });
+    } catch {
+      /* best-effort */
+    }
     return NextResponse.json({ error: msg }, { status: 400 });
   }
 

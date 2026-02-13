@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
+import { writeErrorLog } from "@/lib/logging/errorLog";
 import { NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(request: Request) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -18,6 +19,20 @@ export async function GET() {
     .eq("id", user.id)
     .single();
   if (error) {
+    try {
+      await writeErrorLog(supabase, {
+        route: "/api/me",
+        method: "GET",
+        status: 500,
+        error_code: "INTERNAL",
+        message: "Failed to load profile",
+        user_id: user.id,
+        ip: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+        user_agent: request.headers.get("user-agent") ?? null,
+      });
+    } catch {
+      /* best-effort */
+    }
     return NextResponse.json(
       { error: { code: "INTERNAL", message: "Failed to load profile" } },
       { status: 500 }

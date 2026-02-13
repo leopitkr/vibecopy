@@ -2,6 +2,7 @@ import type OpenAI from "openai";
 import { createHash } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { debitCredits, refundCredits } from "@/lib/db/credits";
+import { writeErrorLog } from "@/lib/logging/errorLog";
 import {
   getOpenAIClient,
   OPENAI_MAX_OUTPUT_TOKENS,
@@ -31,6 +32,11 @@ const CACHE_WINDOW_HOURS = 24;
 // (C-2) Token cap: max_output_tokens 900; JSON schema still valid.
 // (C-3) Cache hit: same payload twice (new idempotency_key) -> 2nd returns cacheHit true, no debit.
 // (C-4) Cache per-user: different user same input -> not cache hit.
+// Error logging (Phase 5):
+// (L-1) INPUT_TOO_LONG -> error_logs row created (user_id set).
+// (L-2) RATE_LIMIT_EXCEEDED -> error log created, no credit debit.
+// (L-3) AI_FAILED (e.g. bad key) -> error log created.
+// (L-4) Webhook invalid signature -> error log via service role (user_id null).
 
 const channelEnum = z.enum([
   "smartstore",
@@ -124,6 +130,21 @@ export async function POST(request: Request) {
     plan,
   });
   if (!rate.allowed) {
+    try {
+      await writeErrorLog(supabase, {
+        route: "/api/generate",
+        method: "POST",
+        status: 429,
+        error_code: "RATE_LIMIT_EXCEEDED",
+        message: rate.message ?? "Too many requests. Please wait.",
+        details: { rate_limit_outcome: "blocked" },
+        user_id: user.id,
+        ip,
+        user_agent: request.headers.get("user-agent") ?? null,
+      });
+    } catch {
+      /* best-effort */
+    }
     return NextResponse.json(
       {
         error: {
@@ -139,6 +160,20 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
+    try {
+      await writeErrorLog(supabase, {
+        route: "/api/generate",
+        method: "POST",
+        status: 400,
+        error_code: "BAD_REQUEST",
+        message: "Request body must be JSON",
+        user_id: user.id,
+        ip,
+        user_agent: request.headers.get("user-agent") ?? null,
+      });
+    } catch {
+      /* best-effort */
+    }
     return NextResponse.json(
       { error: { code: "BAD_REQUEST", message: "Request body must be JSON" } },
       { status: 400 }
@@ -153,6 +188,20 @@ export async function POST(request: Request) {
         (i.code === "too_big" || String(i.message).includes("1000"))
     );
     if (inputTooLong) {
+      try {
+        await writeErrorLog(supabase, {
+          route: "/api/generate",
+          method: "POST",
+          status: 400,
+          error_code: "INPUT_TOO_LONG",
+          message: "입력 길이가 너무 깁니다. 핵심만 요약해 주세요.",
+          user_id: user.id,
+          ip,
+          user_agent: request.headers.get("user-agent") ?? null,
+        });
+      } catch {
+        /* best-effort */
+      }
       return NextResponse.json(
         {
           error: {
@@ -166,6 +215,20 @@ export async function POST(request: Request) {
     const msg =
       parsed.error.issues?.map((i) => i.message).join("; ") ??
       parsed.error.message;
+    try {
+      await writeErrorLog(supabase, {
+        route: "/api/generate",
+        method: "POST",
+        status: 400,
+        error_code: "BAD_REQUEST",
+        message: msg,
+        user_id: user.id,
+        ip,
+        user_agent: request.headers.get("user-agent") ?? null,
+      });
+    } catch {
+      /* best-effort */
+    }
     return NextResponse.json(
       { error: { code: "BAD_REQUEST", message: msg } },
       { status: 400 }
@@ -225,7 +288,25 @@ export async function POST(request: Request) {
   });
 
   if (!debit.ok) {
-    if (debit.error === "INSUFFICIENT_CREDITS")
+    const logPayload = {
+      route: "/api/generate",
+      method: "POST",
+      user_id: user.id,
+      ip,
+      user_agent: request.headers.get("user-agent") ?? null,
+      details: { channel, vibe, input_length: input_value.length, debit_outcome: debit.error },
+    } as const;
+    if (debit.error === "INSUFFICIENT_CREDITS") {
+      try {
+        await writeErrorLog(supabase, {
+          ...logPayload,
+          status: 402,
+          error_code: "INSUFFICIENT_CREDITS",
+          message: "Not enough credits to generate",
+        });
+      } catch {
+        /* best-effort */
+      }
       return NextResponse.json(
         {
           error: {
@@ -235,7 +316,18 @@ export async function POST(request: Request) {
         },
         { status: 402 }
       );
-    if (debit.error === "DAILY_LIMIT_EXCEEDED")
+    }
+    if (debit.error === "DAILY_LIMIT_EXCEEDED") {
+      try {
+        await writeErrorLog(supabase, {
+          ...logPayload,
+          status: 429,
+          error_code: "DAILY_LIMIT_EXCEEDED",
+          message: "Free plan daily limit (3) reached",
+        });
+      } catch {
+        /* best-effort */
+      }
       return NextResponse.json(
         {
           error: {
@@ -245,7 +337,18 @@ export async function POST(request: Request) {
         },
         { status: 429 }
       );
-    if (debit.error === "IDEMPOTENCY_CONFLICT")
+    }
+    if (debit.error === "IDEMPOTENCY_CONFLICT") {
+      try {
+        await writeErrorLog(supabase, {
+          ...logPayload,
+          status: 409,
+          error_code: "IDEMPOTENCY_CONFLICT",
+          message: "Duplicate request or partial state; retry with a new key",
+        });
+      } catch {
+        /* best-effort */
+      }
       return NextResponse.json(
         {
           error: {
@@ -255,6 +358,17 @@ export async function POST(request: Request) {
         },
         { status: 409 }
       );
+    }
+    try {
+      await writeErrorLog(supabase, {
+        ...logPayload,
+        status: 400,
+        error_code: debit.error,
+        message: String(debit.error),
+      });
+    } catch {
+      /* best-effort */
+    }
     return NextResponse.json(
       { error: { code: debit.error, message: String(debit.error) } },
       { status: 400 }
@@ -288,6 +402,21 @@ export async function POST(request: Request) {
           { status: 200 }
         );
     }
+    try {
+      await writeErrorLog(supabase, {
+        route: "/api/generate",
+        method: "POST",
+        status: 409,
+        error_code: "IDEMPOTENCY_CONFLICT",
+        message: "Duplicate key but no generation found; use a new idempotency key",
+        details: { channel, vibe, input_length: input_value.length },
+        user_id: user.id,
+        ip,
+        user_agent: request.headers.get("user-agent") ?? null,
+      });
+    } catch {
+      /* best-effort */
+    }
     return NextResponse.json(
       {
         error: {
@@ -304,6 +433,21 @@ export async function POST(request: Request) {
     openai = getOpenAIClient();
   } catch (e) {
     const msg = e instanceof Error ? e.message : "OpenAI not configured";
+    try {
+      await writeErrorLog(supabase, {
+        route: "/api/generate",
+        method: "POST",
+        status: 500,
+        error_code: "INTERNAL",
+        message: msg,
+        details: { channel, vibe, input_length: input_value.length },
+        user_id: user.id,
+        ip,
+        user_agent: request.headers.get("user-agent") ?? null,
+      });
+    } catch {
+      /* best-effort */
+    }
     return NextResponse.json(
       { error: { code: "INTERNAL", message: msg } },
       { status: 500 }
@@ -361,6 +505,21 @@ export async function POST(request: Request) {
       console.error("[generate] refund failed after AI error:", refund.error);
     }
     const msg = e instanceof Error ? e.message : "AI generation failed";
+    try {
+      await writeErrorLog(supabase, {
+        route: "/api/generate",
+        method: "POST",
+        status: 500,
+        error_code: "AI_FAILED",
+        message: msg,
+        details: { channel, vibe, input_length: input_value.length },
+        user_id: user.id,
+        ip,
+        user_agent: request.headers.get("user-agent") ?? null,
+      });
+    } catch {
+      /* best-effort */
+    }
     return NextResponse.json(
       { error: { code: "AI_FAILED", message: msg } },
       { status: 500 }
@@ -397,6 +556,21 @@ export async function POST(request: Request) {
     });
     if (!refund.ok) {
       console.error("[generate] refund failed after insert error:", refund.error);
+    }
+    try {
+      await writeErrorLog(supabase, {
+        route: "/api/generate",
+        method: "POST",
+        status: 500,
+        error_code: "AI_FAILED",
+        message: "Failed to save generation log",
+        details: { channel, vibe, input_length: input_value.length },
+        user_id: user.id,
+        ip,
+        user_agent: request.headers.get("user-agent") ?? null,
+      });
+    } catch {
+      /* best-effort */
     }
     return NextResponse.json(
       {
