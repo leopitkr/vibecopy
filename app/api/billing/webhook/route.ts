@@ -7,6 +7,7 @@ import {
   getPlanFromPriceId,
   type PlanType,
 } from "@/lib/billing/plans";
+import { EnvError, getServerEnv } from "@/lib/env/server";
 
 /*
  * Manual test steps:
@@ -15,18 +16,6 @@ import {
  * 3) subscription canceled -> customer.subscription.deleted; user downgraded to free, credit_balance = 0
  * 4) Free user upgrade -> after checkout + invoice.paid, users.plan_type changes to standard/pro
  */
-
-function getStripe(): Stripe {
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) throw new Error("Missing STRIPE_SECRET_KEY");
-  return new Stripe(key);
-}
-
-function getWebhookSecret(): string {
-  const secret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!secret) throw new Error("Missing STRIPE_WEBHOOK_SECRET");
-  return secret;
-}
 
 function periodTs(sub: { current_period_start?: number; current_period_end?: number }) {
   return {
@@ -44,8 +33,21 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
-  const stripe = getStripe();
-  const secret = getWebhookSecret();
+  let stripe: Stripe;
+  let secret: string;
+  try {
+    const env = getServerEnv();
+    stripe = new Stripe(env.STRIPE_SECRET_KEY);
+    secret = env.STRIPE_WEBHOOK_SECRET;
+  } catch (e) {
+    if (e instanceof EnvError) {
+      return NextResponse.json(
+        { error: "Server configuration error" },
+        { status: 500 }
+      );
+    }
+    throw e;
+  }
   let event: Stripe.Event;
   try {
     event = stripe.webhooks.constructEvent(rawBody, signature, secret);
@@ -70,7 +72,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: msg }, { status: 400 });
   }
 
-  const supabase = createServiceRoleClient();
+  let supabase: ReturnType<typeof createServiceRoleClient>;
+  try {
+    supabase = createServiceRoleClient();
+  } catch (e) {
+    if (e instanceof EnvError) {
+      return NextResponse.json(
+        { error: "Server configuration error" },
+        { status: 500 }
+      );
+    }
+    throw e;
+  }
 
   try {
     switch (event.type) {

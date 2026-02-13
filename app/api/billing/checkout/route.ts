@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createCheckoutSession } from "@/lib/billing/stripe";
-import { PLAN_PRICE_MAP } from "@/lib/billing/plans";
+import { getPlanPriceMap } from "@/lib/billing/plans";
+import { EnvError } from "@/lib/env/server";
 import { writeErrorLog } from "@/lib/logging/errorLog";
 import { z } from "zod";
 import { NextResponse } from "next/server";
@@ -76,14 +77,44 @@ export async function POST(request: Request) {
   }
 
   const { plan } = parsed.data;
-  const priceId = PLAN_PRICE_MAP[plan];
+  let priceId: string | undefined;
+  try {
+    priceId = getPlanPriceMap()[plan];
+  } catch (e) {
+    if (e instanceof EnvError) {
+      try {
+        await writeErrorLog(supabase, {
+          route: "/api/billing/checkout",
+          method: "POST",
+          status: 500,
+          error_code: "SERVER_MISCONFIGURED",
+          message: "서버 설정 오류입니다. 잠시 후 다시 시도해 주세요.",
+          user_id: user.id,
+          ip,
+          user_agent,
+        });
+      } catch {
+        /* best-effort */
+      }
+      return NextResponse.json(
+        {
+          error: {
+            code: "SERVER_MISCONFIGURED",
+            message: "서버 설정 오류입니다. 잠시 후 다시 시도해 주세요.",
+          },
+        },
+        { status: 500 }
+      );
+    }
+    throw e;
+  }
   if (!priceId) {
     try {
       await writeErrorLog(supabase, {
         route: "/api/billing/checkout",
         method: "POST",
         status: 400,
-        error_code: "BAD_REQUEST",
+        error_code: "PRICE_NOT_CONFIGURED",
         message: "Stripe price not configured for this plan",
         details: { plan },
         user_id: user.id,
@@ -96,7 +127,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error: {
-          code: "BAD_REQUEST",
+          code: "PRICE_NOT_CONFIGURED",
           message: "Stripe price not configured for this plan",
         },
       },
@@ -108,6 +139,31 @@ export async function POST(request: Request) {
     const { url } = await createCheckoutSession(user.id, priceId);
     return NextResponse.json({ url });
   } catch (e) {
+    if (e instanceof EnvError) {
+      try {
+        await writeErrorLog(supabase, {
+          route: "/api/billing/checkout",
+          method: "POST",
+          status: 500,
+          error_code: "SERVER_MISCONFIGURED",
+          message: "서버 설정 오류입니다. 잠시 후 다시 시도해 주세요.",
+          user_id: user.id,
+          ip,
+          user_agent,
+        });
+      } catch {
+        /* best-effort */
+      }
+      return NextResponse.json(
+        {
+          error: {
+            code: "SERVER_MISCONFIGURED",
+            message: "서버 설정 오류입니다. 잠시 후 다시 시도해 주세요.",
+          },
+        },
+        { status: 500 }
+      );
+    }
     const msg = e instanceof Error ? e.message : "Checkout failed";
     try {
       await writeErrorLog(supabase, {

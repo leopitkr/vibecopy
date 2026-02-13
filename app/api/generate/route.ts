@@ -2,6 +2,7 @@ import type OpenAI from "openai";
 import { createHash } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { debitCredits, refundCredits } from "@/lib/db/credits";
+import { EnvError } from "@/lib/env/server";
 import { writeErrorLog } from "@/lib/logging/errorLog";
 import {
   getOpenAIClient,
@@ -37,6 +38,11 @@ const CACHE_WINDOW_HOURS = 24;
 // (L-2) RATE_LIMIT_EXCEEDED -> error log created, no credit debit.
 // (L-3) AI_FAILED (e.g. bad key) -> error log created.
 // (L-4) Webhook invalid signature -> error log via service role (user_id null).
+// Env security (Phase 5):
+// (E-1) Unset OPENAI_API_KEY -> 500 SERVER_MISCONFIGURED, error_logs row created.
+// (E-2) Unset STRIPE_SECRET_KEY -> checkout returns 500 SERVER_MISCONFIGURED, logs.
+// (E-3) Missing STRIPE_PRICE_STANDARD -> checkout returns 400 PRICE_NOT_CONFIGURED.
+// (E-4) No response includes actual env values.
 
 const channelEnum = z.enum([
   "smartstore",
@@ -98,7 +104,23 @@ function buildRetryMessages(
 }
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
+  let supabase: Awaited<ReturnType<typeof createClient>>;
+  try {
+    supabase = await createClient();
+  } catch (e) {
+    if (e instanceof EnvError) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "SERVER_MISCONFIGURED",
+            message: "서버 설정 오류입니다. 잠시 후 다시 시도해 주세요.",
+          },
+        },
+        { status: 500 }
+      );
+    }
+    throw e;
+  }
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -432,6 +454,32 @@ export async function POST(request: Request) {
   try {
     openai = getOpenAIClient();
   } catch (e) {
+    if (e instanceof EnvError) {
+      try {
+        await writeErrorLog(supabase, {
+          route: "/api/generate",
+          method: "POST",
+          status: 500,
+          error_code: "SERVER_MISCONFIGURED",
+          message: "서버 설정 오류입니다. 잠시 후 다시 시도해 주세요.",
+          details: { channel, vibe, input_length: input_value.length },
+          user_id: user.id,
+          ip,
+          user_agent: request.headers.get("user-agent") ?? null,
+        });
+      } catch {
+        /* best-effort */
+      }
+      return NextResponse.json(
+        {
+          error: {
+            code: "SERVER_MISCONFIGURED",
+            message: "서버 설정 오류입니다. 잠시 후 다시 시도해 주세요.",
+          },
+        },
+        { status: 500 }
+      );
+    }
     const msg = e instanceof Error ? e.message : "OpenAI not configured";
     try {
       await writeErrorLog(supabase, {
