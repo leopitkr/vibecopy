@@ -7,6 +7,7 @@ import {
   OPENAI_MODEL,
 } from "@/lib/openai/client";
 import { buildGenerateCopyMessages } from "@/lib/prompts/generateCopy";
+import { checkRateLimit, type PlanType } from "@/lib/rateLimit";
 import { z } from "zod";
 import { NextResponse } from "next/server";
 
@@ -16,6 +17,11 @@ import { NextResponse } from "next/server";
 // (C) Simulate OpenAI failure (e.g. invalid key): refund runs; usage_ledger has credit row; balance restored.
 // (D) Same idempotency_key twice: 2nd request returns 200 with same output (duplicated), no double charge.
 // (E) usage_ledger: unique(user_id, idempotency_key) enforced by migration 20260213120000.
+// Rate limit (Phase 5):
+// (R-1) Rapid calls -> blocked at plan threshold (e.g. free 3/min).
+// (R-2) Free vs Pro -> different limits (Pro 30/min, 500/hr).
+// (R-3) Rate limit 429 does not deduct credit.
+// (R-4) History unaffected.
 
 const channelEnum = z.enum([
   "smartstore",
@@ -85,6 +91,38 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: { code: "UNAUTHORIZED", message: "Not logged in" } },
       { status: 401 }
+    );
+  }
+
+  const { data: profile } = await supabase
+    .from("users")
+    .select("plan")
+    .eq("id", user.id)
+    .single();
+  const plan: PlanType =
+    profile?.plan === "standard" || profile?.plan === "pro"
+      ? profile.plan
+      : "free";
+
+  const forwarded = request.headers.get("x-forwarded-for");
+  const ip =
+    (forwarded?.split(",")[0]?.trim() ?? request.headers.get("x-real-ip")) ||
+    "unknown";
+
+  const rate = await checkRateLimit(supabase, {
+    userId: user.id,
+    ip,
+    plan,
+  });
+  if (!rate.allowed) {
+    return NextResponse.json(
+      {
+        error: {
+          code: "RATE_LIMIT_EXCEEDED",
+          message: rate.message ?? "Too many requests. Please wait.",
+        },
+      },
+      { status: 429 }
     );
   }
 
