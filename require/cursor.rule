@@ -164,6 +164,38 @@ After committing:
 
 ---
 
+
+## 6.3 REQUIRED: Automated milestone hash recording (pnpm finish)
+To prevent missing commit hashes or manual mistakes, we use an automation script.
+
+### Install (one-time)
+- Add the script to the repo:
+  - `scripts/finish_task.mjs`
+- Add a package script (recommended):
+  - `"finish": "node scripts/finish_task.mjs"`
+
+### Finalize flow (MANDATORY)
+For **each** completed checkbox item, you MUST finalize by running:
+
+```bash
+pnpm finish --item "<EXACT CHECKBOX TEXT>"   --milestone "require/VibeCopy_Development_Milestones.md"   --doc "docs/features/<phase>/<slug>.md"   --msg "<COMMIT MESSAGE>"
+```
+
+This produces **two commits**:
+1) Feature commit (implementation)
+2) Docs commit that writes the **feature commit short hash** into the milestone line
+
+### Proof of completion
+After running `pnpm finish`, you MUST confirm:
+- The milestone line is `- [x] ... (commit: abc1234)` (no placeholders)
+- Both commits exist in `git log -n 2`
+
+### Cursor execution rule
+- Do NOT merely propose commands.
+- You MUST actually run commands and show the relevant outputs.
+- If you cannot run commands, stop and state exactly what is blocking execution.
+
+
 ## 7) Testing Requirements (Minimum)
 - API routes must have at least:
   - One happy path test (manual steps documented)

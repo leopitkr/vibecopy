@@ -1,5 +1,4 @@
 # Claude/Cursor Project Rules — VibeCopy
-
 _Last updated: 2026-02-13_
 
 These rules are the **single source of truth** for how we implement VibeCopy using **Claude Code / Cursor**.
@@ -8,7 +7,6 @@ Follow them strictly to keep the project maintainable for a solo developer, with
 ---
 
 ## 0) Guiding Principles
-
 - **Ship the smallest valuable increment** (MVP first). Avoid “nice-to-have” features unless explicitly planned in the milestone.
 - **One change set = one purpose.** Keep each task narrowly scoped.
 - **Security and cost control are features.** Treat them as first-class requirements.
@@ -17,7 +15,6 @@ Follow them strictly to keep the project maintainable for a solo developer, with
 ---
 
 ## 1) Project Structure (Required)
-
 - `app/` — Next.js App Router UI
 - `app/api/` — Server routes (serverless functions)
 - `lib/` — reusable modules (OpenAI client, billing helpers, guards, constants)
@@ -32,27 +29,23 @@ Follow them strictly to keep the project maintainable for a solo developer, with
 ---
 
 ## 2) Branching & Workflow (Solo-friendly)
-
 - Default branch: `main`
 - Work branch per feature: `feat/<milestone-id>-<short-name>`
   - Example: `feat/p2-generate-api`
 - Merge strategy: **rebase** onto `main` when possible (keeps history clean).
 - Every feature must end with:
-  1. **docs** file created/updated
-  2. **milestone checkbox checked**
-  3. **git commit with hash recorded**
+  1) **docs** file created/updated  
+  2) **milestone checkbox checked**  
+  3) **git commit with hash recorded**
 
 ---
 
 ## 3) Coding Standards (Required)
-
 ### Language & Framework
-
 - TypeScript only (no JS files unless unavoidable).
 - Next.js App Router patterns only.
 
 ### Style
-
 - Run formatter before committing:
   - `pnpm lint`
   - `pnpm format` (or equivalent)
@@ -62,7 +55,6 @@ Follow them strictly to keep the project maintainable for a solo developer, with
   - If logic repeats 2x, extract to `lib/`.
 
 ### Error Handling
-
 - All API routes must:
   - Validate inputs
   - Return structured JSON `{{ ok: boolean, data?: ..., error?: {{ code, message }} }}`
@@ -70,63 +62,49 @@ Follow them strictly to keep the project maintainable for a solo developer, with
 - Never leak sensitive details in error messages.
 
 ### Type Safety
-
 - No `any` unless explicitly justified in code comments.
 - Use Zod (or equivalent) for runtime validation in API inputs.
 
 ---
 
 ## 4) Documentation Rules (MANDATORY)
-
 ### 4.1 Feature Completion Docs
-
 Whenever a feature/task is completed, create a document under `docs/`.
 
 **Path format**
-
 - `docs/features/<milestone-phase>/<feature_slug>.md`
   - Example: `docs/features/phase2/generate_api.md`
 
 **Minimum required template**
-
 ```md
 # Feature: <name>
 
 ## Milestone Item
-
 - Milestone: <Phase X / section>
 - Checkbox: <exact checkbox label>
 
 ## Summary
-
 What was implemented and why.
 
 ## Files Changed
-
 - <file path 1>
 - <file path 2>
 
 ## How to Test
-
 Step-by-step manual test instructions.
 
 ## Edge Cases / Known Limits
-
 Anything intentionally not covered.
 
 ## Screenshots (optional)
-
 Paste links or notes.
 
 ## Follow-ups (optional)
-
 Next improvements.
 ```
 
 ### 4.2 Architecture/Decision Logs
-
 For any meaningful design decision (DB schema changes, billing logic changes, prompt format changes):
-
 - Add a short note to `docs/decisions.md` with:
   - Decision
   - Why
@@ -136,27 +114,21 @@ For any meaningful design decision (DB schema changes, billing logic changes, pr
 ---
 
 ## 5) Milestone Tracking (MANDATORY)
-
 We track progress in:
-
 - `require/VibeCopy_Development_Milestones.md`
 
 ### 5.1 When a milestone checkbox is completed
-
 Do all of the following:
-
-1. Check the checkbox from `- [ ]` to `- [x]`
-2. Append the git commit hash on the same line in this format:
+1) Check the checkbox from `- [ ]` to `- [x]`
+2) Append the git commit hash on the same line in this format:
    - `- [x] <item text>  (commit: <SHORT_HASH>)`
 
 Example:
-
 ```md
-- [x] /api/generate 라우트 생성 (commit: a1b2c3d)
+- [x] /api/generate 라우트 생성  (commit: a1b2c3d)
 ```
 
 ### 5.2 One checkbox = one commit (Default)
-
 - Prefer: **1 milestone checkbox = 1 commit**
 - Exception: if the task is extremely small, you may bundle up to 3 items **only if** they are in the same sub-section and tightly related.
 - If you bundle, you still must update every checked line with the same commit hash.
@@ -164,11 +136,8 @@ Example:
 ---
 
 ## 6) Git Commit Rules (MANDATORY)
-
 ### 6.1 Commit Message Format
-
 Use conventional-style messages:
-
 - `feat: ...` new feature
 - `fix: ...` bug fix
 - `chore: ...` tooling / refactor
@@ -176,15 +145,12 @@ Use conventional-style messages:
 - `test: ...` tests
 
 Examples:
-
 - `feat: add generate API route`
 - `feat: implement credit deduction transaction`
 - `fix: handle OpenAI timeout gracefully`
 
 ### 6.2 Commit Checklist
-
 Before committing:
-
 - `pnpm lint` passes
 - `pnpm test` passes (if tests exist for that area)
 - No secrets in git diff
@@ -192,7 +158,6 @@ Before committing:
 - Milestone checkbox updated with `(commit: <hash>)`
 
 After committing:
-
 - Copy the **short hash** and paste into the milestone line.
 
 > If you use Claude/Cursor to automate this, it must still perform the above steps explicitly.
@@ -200,7 +165,6 @@ After committing:
 ---
 
 ## 7) Testing Requirements (Minimum)
-
 - API routes must have at least:
   - One happy path test (manual steps documented)
   - One validation failure scenario (documented)
@@ -215,7 +179,6 @@ If automated tests are not implemented yet, document manual test steps in the fe
 ---
 
 ## 8) Security & Compliance (NON-NEGOTIABLE)
-
 - Never commit secrets:
   - `.env*` must be in `.gitignore`
   - Use `.env.example` with placeholders only
@@ -231,7 +194,6 @@ If automated tests are not implemented yet, document manual test steps in the fe
 ---
 
 ## 9) Cost Control Rules
-
 - Enforce input size limits (characters + tokens).
 - Use model selection appropriate for MVP.
 - Set `max_output_tokens` and reasonable timeouts.
@@ -242,7 +204,6 @@ If automated tests are not implemented yet, document manual test steps in the fe
 ---
 
 ## 10) Prompting & Output Contract Rules
-
 - The `/api/generate` output must be **strict JSON** matching a defined schema.
 - Never rely on “best effort” natural language parsing.
 - If the model returns invalid JSON:
@@ -252,7 +213,6 @@ If automated tests are not implemented yet, document manual test steps in the fe
 ---
 
 ## 11) Internationalization / Expansion Readiness
-
 - Keep user-facing strings centralized when possible (`lib/strings.ts`).
 - Avoid hardcoding currency formatting where feasible.
 - Plan fields must be compatible with future region pricing.
@@ -260,9 +220,7 @@ If automated tests are not implemented yet, document manual test steps in the fe
 ---
 
 ## 12) Definition of Done (DoD)
-
 A feature is “Done” only when:
-
 - Code implemented
 - Lint passes
 - Manual test steps executed (and documented)
@@ -273,23 +231,18 @@ A feature is “Done” only when:
 ---
 
 ## 13) Files to Create Now
-
 Create one of these (based on your tool):
-
 - `claude.md` (for Claude Code)
 - `cursor.rule` (for Cursor)
 - You may keep both identical.
 
 Recommended: store in `require/` as well:
-
 - `require/claude.md` and/or `require/cursor.rule`
 
 ---
 
 ## 14) Quick Start Commands (Suggested)
-
 (Adjust as needed for your package manager)
-
 - Install: `pnpm i`
 - Dev: `pnpm dev`
 - Lint: `pnpm lint`
@@ -299,6 +252,5 @@ Recommended: store in `require/` as well:
 ---
 
 If any rule conflicts with PRD/Tech Design:
-
 - **PRD wins** for product decisions
 - **Tech Design wins** for engineering decisions
