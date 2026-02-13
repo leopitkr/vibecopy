@@ -27,7 +27,7 @@
 - [x] TypeScript 설정 확인 (commit: 6d0c5ea)
 - [x] TailwindCSS 설정 (commit: 0ba134c)
 - [x] ESLint / Prettier 설정  (commit: c2d4771)
-- [x] 환경변수(.env.local) 구조 정의  (commit: <SHORT_HASH>)
+- [x] 환경변수(.env.local) 구조 정의  (commit: 6eaa1b9)
 
 ## 배포 환경
 
