@@ -22,7 +22,7 @@
 
 ## 환경 구축
 
--   [x] Next.js 프로젝트 생성 (App Router)  (commit: TBD)
+-   [x] Next.js 프로젝트 생성 (App Router)  (commit: bf70ee7)
 -   [ ] TypeScript 설정 확인
 -   [ ] TailwindCSS 설정
 -   [ ] ESLint / Prettier 설정
