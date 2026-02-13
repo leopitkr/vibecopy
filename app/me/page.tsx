@@ -18,16 +18,33 @@ export default async function MePage() {
       </main>
     );
   }
-  const { data: profile, error } = await supabase
+  let profile: { id: string; email: string | null; plan: string; credit_balance: number } | null = null;
+  let error: Error | null = null;
+  let result = await supabase
     .from("users")
     .select("id, email, plan, credit_balance")
     .eq("id", user.id)
     .single();
-  if (error) {
+  profile = result.data;
+  error = result.error;
+
+  // If no row (e.g. user signed up before trigger existed), create it and retry
+  if (error && (result.error?.code === "PGRST116" || result.error?.message?.includes("single JSON object"))) {
+    await supabase.from("users").insert({ id: user.id, email: user.email ?? undefined }).select().single();
+    result = await supabase
+      .from("users")
+      .select("id, email, plan, credit_balance")
+      .eq("id", user.id)
+      .single();
+    profile = result.data;
+    error = result.error;
+  }
+
+  if (error || !profile) {
     return (
       <main className="p-8 max-w-md mx-auto">
         <h1 className="text-2xl font-bold text-gray-900">RLS test</h1>
-        <p className="mt-2 text-red-600">Error loading profile: {error.message}</p>
+        <p className="mt-2 text-red-600">Error loading profile: {error?.message ?? "Unknown"}</p>
         <p className="mt-2 text-gray-600 text-sm">
           Ensure the auth trigger created your public.users row (sign up first).
         </p>

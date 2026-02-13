@@ -13,12 +13,27 @@ export async function GET(request: Request) {
       { status: 401 }
     );
   }
-  const { data: profile, error } = await supabase
+  let result = await supabase
     .from("users")
     .select("id, email, plan, credit_balance")
     .eq("id", user.id)
     .single();
-  if (error) {
+  let profile = result.data;
+  let error = result.error;
+
+  // If no row (e.g. user signed up before trigger existed), create it and retry
+  if (error && (result.error?.code === "PGRST116" || result.error?.message?.includes("single JSON object"))) {
+    await supabase.from("users").insert({ id: user.id, email: user.email ?? undefined }).select().single();
+    result = await supabase
+      .from("users")
+      .select("id, email, plan, credit_balance")
+      .eq("id", user.id)
+      .single();
+    profile = result.data;
+    error = result.error;
+  }
+
+  if (error || !profile) {
     try {
       await writeErrorLog(supabase, {
         route: "/api/me",
@@ -38,13 +53,30 @@ export async function GET(request: Request) {
       { status: 500 }
     );
   }
+
+  // Free plan: show remaining daily uses (3 - today's debits), not DB credit_balance
+  let creditBalance = profile.credit_balance;
+  if (profile.plan === "free") {
+    const startOfToday = new Date();
+    startOfToday.setUTCHours(0, 0, 0, 0);
+    const { count } = await supabase
+      .from("usage_ledger")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("type", "debit")
+      .eq("reason", "generate")
+      .gte("created_at", startOfToday.toISOString());
+    const todayUsed = count ?? 0;
+    creditBalance = Math.max(0, 3 - todayUsed);
+  }
+
   return NextResponse.json({
     ok: true,
     data: {
       id: profile.id,
       email: profile.email,
       plan: profile.plan,
-      credit_balance: profile.credit_balance,
+      credit_balance: creditBalance,
     },
   });
 }

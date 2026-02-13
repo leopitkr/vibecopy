@@ -159,6 +159,18 @@ export function GeneratePageClient() {
     inputValid &&
     (creditsLeft === null || creditsLeft > 0);
 
+  const submitDisabledReason = !canSubmit
+    ? meLoading
+      ? "크레딧 정보를 불러오는 중…"
+      : !inputValid
+        ? inputTooLong
+          ? "입력이 1000자를 초과하면 생성할 수 없습니다."
+          : "입력 내용을 입력해 주세요."
+        : creditsLeft !== null && creditsLeft <= 0
+          ? "오늘 사용 가능한 횟수를 모두 사용했습니다. 내일 다시 시도하거나 업그레이드해 주세요."
+          : "준비 중…"
+    : null;
+
   return (
     <main className="min-h-screen p-4 md:p-6">
       <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -343,6 +355,11 @@ export function GeneratePageClient() {
           >
             생성
           </button>
+          {submitDisabledReason && (
+            <p className="mt-2 text-center text-sm text-gray-500 dark:text-gray-400" role="status">
+              {submitDisabledReason}
+            </p>
+          )}
         </form>
 
         {result && (
