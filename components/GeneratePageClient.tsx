@@ -353,6 +353,14 @@ export function GeneratePageClient() {
                 남은 크레딧: {creditsAfter}
               </p>
             )}
+            <p className="mt-3 text-center">
+              <Link
+                href="/feedback"
+                className="text-xs text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+              >
+                서비스 개선을 위한 1분 피드백
+              </Link>
+            </p>
           </div>
         )}
       </div>

@@ -287,12 +287,18 @@ export default function LandingPage() {
             <span className="text-sm text-gray-500 dark:text-gray-400">
               © VibeCopy. 셀러 전용 AI 카피 생성기.
             </span>
-            <div className="flex gap-6">
+            <div className="flex flex-wrap items-center justify-center gap-6">
               <Link
                 href="/pricing"
                 className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               >
                 요금제
+              </Link>
+              <Link
+                href="/feedback"
+                className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                피드백 보내기
               </Link>
               <Link
                 href="/login"
