@@ -5,34 +5,41 @@
 - Checkbox: 환경변수(.env.local) 구조 정의
 
 ## Summary
-Defined env var contract for MVP and later phases. Added `.env.example` with placeholders and comments only (§8). No secrets; `.env*` remains in `.gitignore`. No runtime validation module (Next.js loads `.env.local` automatically; add validation in the phase that first uses env if needed).
+Defined env var contract for MVP and later phases. `.env.example` lists all variables with placeholders and comments (public vs server-only). No real values in repo; `.env*` in `.gitignore`, `!.env.example` allowed.
 
 ## Files Changed
-- .env.example (new, placeholders only)
+- .env.example (placeholders: NEXT_PUBLIC_APP_URL, SUPABASE_*, OPENAI_API_KEY, STRIPE_*)
 - docs/features/phase0/env_contract.md
-- require/VibeCopy_Development_Milestones.md
+- require/VibeCopy_Development_Milestones.md (on finalize)
 
-## Env contract
+## Variable definitions
 
-| Variable | Public/Server | Used in (phase) |
-|----------|---------------|-----------------|
-| NEXT_PUBLIC_APP_URL | Public | App URL, redirects (Phase 0+) |
-| SUPABASE_URL | Server + client | Supabase client (Phase 1) |
-| SUPABASE_ANON_KEY | Server + client | Supabase auth (Phase 1) |
-| OPENAI_API_KEY | Server only | OpenAI client / generate API (Phase 2) |
+| Variable | Scope | Purpose |
+|----------|--------|---------|
+| NEXT_PUBLIC_APP_URL | Public | App origin; redirects, links (Phase 0+) |
+| SUPABASE_URL | Server + client | Supabase project URL (Phase 1) |
+| SUPABASE_ANON_KEY | Server + client | Supabase anon/publishable key; client-safe (Phase 1) |
+| SUPABASE_DB_URL | Server only | Direct Postgres URL; migrations, server DB access |
+| SUPABASE_SERVICE_ROLE_KEY | Server only (optional) | Bypasses RLS; trusted server code only |
+| OPENAI_API_KEY | Server only | OpenAI API (Phase 2) |
 | STRIPE_SECRET_KEY | Server only | Stripe API (Phase 3) |
-| STRIPE_WEBHOOK_SECRET | Server only | Stripe webhook (Phase 3) |
+| STRIPE_WEBHOOK_SECRET | Server only | Stripe webhook verification (Phase 3) |
+
+## Security considerations
+- **Public (NEXT_PUBLIC_*):** Bundled into client JS. Use only for non-secret config (e.g. app URL). Never put API keys or secrets here.
+- **Server-only:** Use only in server code (API routes, server components, server-only `lib`). Never expose in client bundles.
+- **SUPABASE_ANON_KEY:** Safe for client; RLS and auth policies protect data. Do not expose service role key.
+- **SUPABASE_SERVICE_ROLE_KEY:** Bypasses RLS. Use only in trusted server code; never in client or public env.
+- **SUPABASE_DB_URL:** Contains DB password. Server-only; use for migrations or server-side Postgres clients.
+- Never commit `.env`, `.env.local`, or any file with real secrets. Use `.env.example` with placeholders only (§8).
 
 ## How to Test
-1. Confirm `.env.example` exists and contains only placeholders.
-2. Confirm `.gitignore` includes `.env*`.
-3. Optional: `cp .env.example .env.local` then `pnpm dev` / `pnpm build` — app runs (no feature reads env yet).
+1. Confirm `.env.example` exists and contains only placeholders (no real keys).
+2. Confirm `.gitignore` includes `.env*` and `!.env.example`.
+3. Optional: `cp .env.example .env.local`, fill values, then `pnpm dev` / `pnpm build`.
 
 ## Edge Cases / Known Limits
-- No env validation module in this milestone; add in Phase 1 or 2 when first consuming env if desired.
-
-## Screenshots (optional)
-N/A
+- No runtime env validation in this milestone; add when first consuming env (e.g. Phase 1).
 
 ## Follow-ups (optional)
 - Phase 1: wire SUPABASE_* in auth client.
