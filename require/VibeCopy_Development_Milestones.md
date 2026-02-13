@@ -42,10 +42,10 @@
 ## Supabase 설정
 
 - [ ] Supabase 프로젝트 생성
-- [x] Users 테이블 생성  (commit: <SHORT_HASH>)
-- [x] Generations 테이블 생성  (commit: <SHORT_HASH>)
-- [x] Subscription 테이블 생성  (commit: <SHORT_HASH>)
-- [x] RLS 정책 설정  (commit: <SHORT_HASH>)
+- [x] Users 테이블 생성  (commit: 4eb6e09)
+- [x] Generations 테이블 생성  (commit: 4eb6e09)
+- [x] Subscription 테이블 생성  (commit: 4eb6e09)
+- [x] RLS 정책 설정  (commit: 4eb6e09)
 - [x] Auth 연동 테스트  (commit: f6f6158)
 
 ## 계정 기능
