@@ -92,11 +92,11 @@
 
 ## Stripe 연동
 
-- [ ] Stripe 계정 생성
-- [ ] 요금제 생성 (Free / Standard / Pro)
+- [x] Stripe 계정 생성  (commit: c5d14e2)
+- [x] 요금제 생성 (Free / Standard / Pro)  (commit: c5d14e2)
 - [x] Checkout 세션 구현  (commit: c5d14e2)
-- [ ] Webhook 엔드포인트 구현
-- [ ] 구독 상태 DB 동기화
+- [x] Webhook 엔드포인트 구현  (commit: c5d14e2)
+- [x] 구독 상태 DB 동기화  (commit: c5d14e2)
 
 ## 플랜 제한 적용
 
