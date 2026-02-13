@@ -144,7 +144,7 @@
 
 - [x] 랜딩 페이지 제작  (commit: afe7b35)
 - [x] 이용 가이드 작성  (commit: c141e2d)
-- [ ] FAQ 문서 작성
+- [x] FAQ 문서 작성  (commit: 89468ca)
 - [x] 피드백 수집 폼 연결  (commit: 6cda69d)
 - [ ] 커뮤니티 베타 모집
 
