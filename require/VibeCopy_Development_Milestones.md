@@ -94,7 +94,7 @@
 
 - [ ] Stripe 계정 생성
 - [ ] 요금제 생성 (Free / Standard / Pro)
-- [ ] Checkout 세션 구현
+- [x] Checkout 세션 구현  (commit: c5d14e2)
 - [ ] Webhook 엔드포인트 구현
 - [ ] 구독 상태 DB 동기화
 
