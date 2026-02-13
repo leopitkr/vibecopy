@@ -129,7 +129,7 @@
 ## 보안
 
 - [x] API rate limiting  (commit: e6bd38b)
-- [ ] 환경변수 보안 점검
+- [x] 환경변수 보안 점검  (commit: 448eaf5)
 - [x] 에러 로깅 시스템 추가  (commit: f1c4e30)
 
 ## UX 개선
