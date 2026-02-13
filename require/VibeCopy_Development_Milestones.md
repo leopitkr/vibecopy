@@ -110,11 +110,11 @@
 # 📊 Phase 4: 기록/대시보드 기능 (Week 3)
 
 - [x] 생성 기록 조회 페이지  (commit: f89edcb)
-- [ ] 날짜순 정렬
-- [ ] 재생성 버튼
-- [ ] 사용자 플랜 표시
-- [ ] 크레딧 잔액 표시
-- [ ] 사용량 통계 표시
+- [x] 날짜순 정렬  (commit: f89edcb)
+- [x] 재생성 버튼  (commit: f89edcb)
+- [x] 사용자 플랜 표시  (commit: f89edcb)
+- [x] 크레딧 잔액 표시  (commit: f89edcb)
+- [x] 사용량 통계 표시  (commit: f89edcb)
 
 ---
 
