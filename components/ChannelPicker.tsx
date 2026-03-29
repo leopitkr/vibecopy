@@ -1,15 +1,14 @@
 "use client";
 
 import type { Channel } from "@/lib/ui/generateClient";
-import { CHANNEL_CONSTRAINTS } from "@/lib/prompts/generateCopy";
 
-const CHANNEL_LABELS: Record<Channel, string> = {
-  smartstore: "스마트스토어",
-  coupang: "쿠팡",
-  affiliate: "제휴/블로그",
-  social: "SNS",
-  shortform: "숏폼",
-};
+const CHANNEL_OPTIONS: { value: Channel; label: string; description: string }[] = [
+  { value: "smartstore", label: "스마트스토어", description: "50~80자 헤드라인, 네이버 검색 최적화" },
+  { value: "coupang", label: "쿠팡", description: "쿠팡 규정에 맞는 키워드 중심 타이틀" },
+  { value: "affiliate", label: "제휴/블로그", description: "클릭을 유도하는 블로그/카페용 제목" },
+  { value: "social", label: "SNS", description: "짧고 임팩트 있는 피드/스토리용" },
+  { value: "shortform", label: "숏폼", description: "3~5초 내 후킹, 대화체 스크립트" },
+];
 
 type ChannelPickerProps = {
   value: Channel;
@@ -22,39 +21,37 @@ export function ChannelPicker({
   onChange,
   disabled = false,
 }: ChannelPickerProps) {
-  const channels = Object.keys(CHANNEL_CONSTRAINTS) as Channel[];
-  const constraint = CHANNEL_CONSTRAINTS[value];
+  const selected = CHANNEL_OPTIONS.find((o) => o.value === value);
   return (
-    <fieldset className="space-y-2" aria-describedby="channel-helper">
-      <legend className="text-sm font-medium text-gray-700 dark:text-gray-300">
-        채널
+    <fieldset aria-describedby="channel-helper" className="picker-fieldset">
+      <legend className="picker-legend">
+        판매 채널
       </legend>
-      <div className="flex flex-wrap gap-2">
-        {channels.map((c) => (
+      <div className="picker-options">
+        {CHANNEL_OPTIONS.map((opt) => (
           <label
-            key={c}
-            className="inline-flex cursor-pointer items-center rounded-lg border px-3 py-2 text-sm transition focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 dark:has-[:checked]:bg-blue-900/20"
+            key={opt.value}
+            className={`picker-option ${value === opt.value ? "active" : ""} ${disabled ? "disabled" : ""}`}
           >
             <input
               type="radio"
               name="channel"
-              value={c}
-              checked={value === c}
-              onChange={() => onChange(c)}
+              value={opt.value}
+              checked={value === opt.value}
+              onChange={() => onChange(opt.value)}
               disabled={disabled}
               className="sr-only"
               aria-describedby="channel-helper"
             />
-            <span>{CHANNEL_LABELS[c]}</span>
+            {opt.label}
           </label>
         ))}
       </div>
-      <p
-        id="channel-helper"
-        className="text-xs text-gray-500 dark:text-gray-400"
-      >
-        {constraint?.headlineLength ?? ""}
-      </p>
+      {selected && (
+        <p id="channel-helper" className="picker-helper">
+          {selected.description}
+        </p>
+      )}
     </fieldset>
   );
 }

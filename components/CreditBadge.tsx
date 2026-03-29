@@ -1,59 +1,79 @@
 "use client";
 
 import Link from "next/link";
+import { LOW_CREDIT_THRESHOLD, type PlanType, type PlanLimitType } from "@/lib/constants/limits";
+
+export type PlanInfo = {
+  type: PlanLimitType;
+  label: string;
+  limit: number;
+  remaining: number;
+};
 
 type CreditBadgeProps = {
+  plan: PlanType;
+  planInfo?: PlanInfo | null;
   creditsLeft: number | null;
   loading?: boolean;
-  insufficient?: boolean;
 };
 
-const label: Record<string, string> = {
-  en: "Credits",
-  ko: "크레딧",
-};
+function getBadgeText(plan: PlanType, planInfo: PlanInfo | null | undefined, creditsLeft: number | null): string {
+  if (planInfo) {
+    if (planInfo.type === "unlimited") {
+      return `${planInfo.label} · 무제한 이용 중`;
+    }
+    if (planInfo.type === "daily") {
+      return `${planInfo.label} 플랜 · 오늘 ${planInfo.remaining}회 남음`;
+    }
+    if (planInfo.type === "monthly") {
+      return `${planInfo.label} · 이번 달 ${planInfo.remaining}회 남음`;
+    }
+  }
+  // Fallback for old API response format
+  return `${creditsLeft ?? 0} 크레딧`;
+}
+
+function isLowCredit(plan: PlanType, remaining: number): boolean {
+  const threshold = LOW_CREDIT_THRESHOLD[plan];
+  return remaining <= threshold;
+}
 
 export function CreditBadge({
+  plan,
+  planInfo,
   creditsLeft,
   loading = false,
-  insufficient = false,
 }: CreditBadgeProps) {
   if (loading) {
     return (
-      <span
-        className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-500 dark:bg-gray-800 dark:text-gray-400"
-        aria-busy="true"
-      >
-        <span className="h-2 w-2 animate-pulse rounded-full bg-gray-400" />
-        {label.ko}
+      <span className="credit-badge credit-badge-loading" aria-busy="true">
+        <span className="credit-badge-dot loading" />
+        로딩 중
       </span>
     );
   }
-  const isLow = creditsLeft !== null && creditsLeft <= 0;
+
+  const remaining = planInfo?.remaining ?? creditsLeft ?? 0;
+  const isLow = isLowCredit(plan, remaining);
+  const isEmpty = remaining <= 0;
+  const badgeText = getBadgeText(plan, planInfo, creditsLeft);
+
   return (
-    <div className="inline-flex flex-col items-end">
+    <div className="credit-badge-wrapper">
       <span
-        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500 ${
-          isLow || insufficient
-            ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200"
-            : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
-        }`}
-        aria-describedby={isLow || insufficient ? "credit-warning" : undefined}
+        className={`credit-badge ${isEmpty ? "empty" : isLow ? "low" : ""}`}
+        aria-describedby={isLow ? "credit-warning" : undefined}
       >
-        <span aria-hidden="true">{creditsLeft ?? 0}</span>
-        <span>{label.ko}</span>
+        {badgeText}
       </span>
-      {(isLow || insufficient) && (
-        <span
-          id="credit-warning"
-          className="mt-1 text-xs text-amber-600 dark:text-amber-400"
-        >
-          <Link
-            href="/pricing"
-            className="underline focus:rounded focus:outline-none focus:ring-2 focus:ring-amber-500"
-          >
-            업그레이드
-          </Link>
+      {isEmpty && plan === "free" && (
+        <span id="credit-warning" className="credit-badge-warning empty">
+          <Link href="/pricing">업그레이드</Link>
+        </span>
+      )}
+      {isLow && !isEmpty && (
+        <span id="credit-warning" className="credit-badge-warning low">
+          <Link href="/pricing">업그레이드</Link>
         </span>
       )}
     </div>
