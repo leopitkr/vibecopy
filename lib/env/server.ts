@@ -53,7 +53,9 @@ function parse(): ServerEnv {
   if (!result.success) {
     const first = result.error.issues[0];
     const path = first?.path?.join(".") ?? "env";
-    throw new EnvError(`Missing or invalid: ${path}`);
+    const msg = `Missing or invalid: ${path}`;
+    console.error("[env] getServerEnv validation failed:", msg);
+    throw new EnvError(msg);
   }
   const data = result.data;
   return {

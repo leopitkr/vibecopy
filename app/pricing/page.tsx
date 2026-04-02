@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import "../(marketing)/landing.css";
 
 type PlanId = "standard" | "pro";
 
@@ -35,106 +36,162 @@ export default function PricingPage() {
   }
 
   return (
-    <main className="min-h-screen p-6">
-      <div className="mx-auto max-w-4xl">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          요금제
-        </h1>
-        <p className="mt-2 text-gray-600 dark:text-gray-400">
-          플랜을 선택하고 업그레이드하세요.
-        </p>
+    <div className="landing-page">
+      <div className="landing-gradient" />
 
-        <div className="mt-8 grid gap-6 sm:grid-cols-3">
-          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Free
-            </h2>
-            <p className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
-              0원
-            </p>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              일 3회 생성
-            </p>
-            <ul className="mt-4 list-inside list-disc text-sm text-gray-600 dark:text-gray-300">
-              <li>기본 바이브 사용</li>
-              <li>생성 기록 저장</li>
-            </ul>
-            <Link
-              href="/generate"
-              className="mt-6 block w-full rounded-lg border border-gray-300 py-2 text-center text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:text-gray-200"
-            >
+      {/* Header */}
+      <header className="header-blur">
+        <div className="header-inner">
+          <Link href="/" className="logo">
+            VibeCopy
+          </Link>
+          <nav>
+            <Link href="/pricing">요금제</Link>
+            <Link href="/guide">가이드</Link>
+            <Link href="/faq">FAQ</Link>
+            <Link href="/login" className="btn btn-ghost">
+              로그인
+            </Link>
+            <Link href="/generate" className="btn btn-primary">
               시작하기
             </Link>
-          </section>
-
-          <section className="rounded-xl border-2 border-blue-500 bg-white p-6 shadow-sm dark:bg-gray-800">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Standard
-            </h2>
-            <p className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
-              19,000원
-            </p>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              월 500 크레딧
-            </p>
-            <ul className="mt-4 list-inside list-disc text-sm text-gray-600 dark:text-gray-300">
-              <li>전체 바이브 사용</li>
-              <li>히스토리 저장</li>
-            </ul>
-            <button
-              type="button"
-              onClick={() => handleUpgrade("standard")}
-              disabled={!!loading}
-              aria-busy={loading === "standard"}
-              className="mt-6 w-full rounded-lg bg-blue-600 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 hover:bg-blue-700"
-            >
-              {loading === "standard" ? "이동 중…" : "업그레이드"}
-            </button>
-          </section>
-
-          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Pro
-            </h2>
-            <p className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
-              49,000원
-            </p>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              무제한 생성
-            </p>
-            <ul className="mt-4 list-inside list-disc text-sm text-gray-600 dark:text-gray-300">
-              <li>브랜드 보이스 저장</li>
-              <li>CSV 다운로드</li>
-              <li>A/B 카피 변형</li>
-            </ul>
-            <button
-              type="button"
-              onClick={() => handleUpgrade("pro")}
-              disabled={!!loading}
-              aria-busy={loading === "pro"}
-              className="mt-6 w-full rounded-lg bg-blue-600 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 hover:bg-blue-700"
-            >
-              {loading === "pro" ? "이동 중…" : "업그레이드"}
-            </button>
-          </section>
+          </nav>
         </div>
+      </header>
 
-        {error && (
-          <p role="alert" className="mt-6 text-sm text-red-600 dark:text-red-400">
-            {error}
-          </p>
-        )}
+      <main>
+        <section className="hero" style={{ paddingBottom: "4rem" }}>
+          <div className="hero-inner">
+            <p className="section-label">요금제</p>
+            <h1 style={{ marginBottom: "1rem" }}>부담 없이 무료로 시작하세요</h1>
+            <p>필요에 맞는 플랜을 선택하세요</p>
+          </div>
+        </section>
 
-        <p className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
-          <Link href="/generate" className="underline focus:ring-2 focus:ring-blue-500">
-            카피 생성
-          </Link>
-          {" · "}
-          <Link href="/me" className="underline focus:ring-2 focus:ring-blue-500">
-            내 정보
-          </Link>
-        </p>
-      </div>
-    </main>
+        <section style={{ paddingTop: 0 }}>
+          <div className="section-inner" style={{ maxWidth: "1000px" }}>
+            <div className="pricing-grid">
+              {/* Free Plan */}
+              <div className="pricing-card">
+                <h2 className="pricing-tier">Free</h2>
+                <p className="pricing-price">0원</p>
+                <p className="pricing-period">하루 3회 생성</p>
+                <ul className="pricing-features">
+                  <li>
+                    <span className="check-icon">✓</span>
+                    전체 채널 지원
+                  </li>
+                  <li>
+                    <span className="check-icon">✓</span>
+                    기본 바이브 사용
+                  </li>
+                  <li>
+                    <span className="check-icon">✓</span>
+                    생성 기록 저장
+                  </li>
+                </ul>
+                <Link href="/generate" className="btn btn-ghost" style={{ width: "100%", marginTop: "auto" }}>
+                  시작하기
+                </Link>
+              </div>
+
+              {/* Standard Plan */}
+              <div className="pricing-card pricing-card-featured">
+                <span className="pricing-badge">추천</span>
+                <h2 className="pricing-tier pricing-tier-featured">Standard</h2>
+                <p className="pricing-price">
+                  19,000원<span className="pricing-unit">/월</span>
+                </p>
+                <p className="pricing-period">월 500회 생성</p>
+                <ul className="pricing-features">
+                  <li>
+                    <span className="check-icon check-icon-featured">✓</span>
+                    전체 채널 지원
+                  </li>
+                  <li>
+                    <span className="check-icon check-icon-featured">✓</span>
+                    전체 바이브 사용
+                  </li>
+                  <li>
+                    <span className="check-icon check-icon-featured">✓</span>
+                    히스토리 저장
+                  </li>
+                </ul>
+                <button
+                  type="button"
+                  onClick={() => handleUpgrade("standard")}
+                  disabled={!!loading}
+                  className="btn btn-primary"
+                  style={{ width: "100%", marginTop: "auto" }}
+                >
+                  {loading === "standard" ? "이동 중…" : "업그레이드"}
+                </button>
+              </div>
+
+              {/* Pro Plan */}
+              <div className="pricing-card">
+                <h2 className="pricing-tier">Pro</h2>
+                <p className="pricing-price">
+                  49,000원<span className="pricing-unit">/월</span>
+                </p>
+                <p className="pricing-period">무제한 생성</p>
+                <ul className="pricing-features">
+                  <li>
+                    <span className="check-icon">✓</span>
+                    Standard 모든 기능
+                  </li>
+                  <li>
+                    <span className="check-icon">✓</span>
+                    브랜드 보이스 저장
+                  </li>
+                  <li>
+                    <span className="check-icon">✓</span>
+                    CSV 다운로드
+                  </li>
+                  <li>
+                    <span className="check-icon">✓</span>
+                    A/B 카피 변형
+                  </li>
+                </ul>
+                <button
+                  type="button"
+                  onClick={() => handleUpgrade("pro")}
+                  disabled={!!loading}
+                  className="btn btn-ghost"
+                  style={{ width: "100%", marginTop: "auto" }}
+                >
+                  {loading === "pro" ? "이동 중…" : "업그레이드"}
+                </button>
+              </div>
+            </div>
+
+            {error && (
+              <div className="error-message">
+                {error}
+              </div>
+            )}
+
+            <p className="help-text">
+              질문이 있으시면{" "}
+              <Link href="/faq">FAQ</Link>를 확인하거나{" "}
+              <Link href="/feedback">피드백</Link>을 남겨주세요.
+            </p>
+          </div>
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer className="page-footer">
+        <div className="footer-inner">
+          <span>© VibeCopy</span>
+          <nav>
+            <Link href="/pricing">요금제</Link>
+            <Link href="/guide">이용 가이드</Link>
+            <Link href="/faq">FAQ</Link>
+            <Link href="/feedback">피드백</Link>
+          </nav>
+        </div>
+      </footer>
+    </div>
   );
 }

@@ -5,19 +5,20 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { RATE_LIMITS, type PlanType } from "@/lib/constants/limits";
 
-export type PlanType = "free" | "standard" | "pro";
+export type { PlanType };
 
 const PER_MINUTE: Record<PlanType, number> = {
-  free: 3,
-  standard: 10,
-  pro: 30,
+  free: RATE_LIMITS.free.perMinute,
+  standard: RATE_LIMITS.standard.perMinute,
+  pro: RATE_LIMITS.pro.perMinute,
 };
 
 const PER_HOUR: Record<PlanType, number> = {
-  free: 10,
-  standard: 100,
-  pro: 500,
+  free: RATE_LIMITS.free.perHour,
+  standard: RATE_LIMITS.standard.perHour,
+  pro: RATE_LIMITS.pro.perHour,
 };
 
 export type RateLimitResult =
@@ -53,6 +54,12 @@ export async function checkRateLimit(
       .gte("created_at", oneHourAgo.toISOString()),
   ]);
 
+  // PGRST205: table not found - skip rate limiting if table doesn't exist
+  if (minCount.error?.code === "PGRST205" || hourCount.error?.code === "PGRST205") {
+    console.warn("[rateLimit] rate_limits table not found, skipping rate limit check");
+    return { allowed: true };
+  }
+
   const perMin = PER_MINUTE[plan];
   const perHour = PER_HOUR[plan];
 
@@ -69,6 +76,11 @@ export async function checkRateLimit(
   });
 
   if (error) {
+    // PGRST205: table not found in schema cache - skip rate limiting if table doesn't exist
+    if (error.code === "PGRST205") {
+      console.warn("[rateLimit] rate_limits table not found, skipping rate limit check");
+      return { allowed: true };
+    }
     console.error("[rateLimit] insert failed:", error);
     return { allowed: false, message: "Rate limit recording failed. Please retry." };
   }

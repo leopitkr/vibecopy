@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { writeErrorLog } from "@/lib/logging/errorLog";
 import { NextResponse } from "next/server";
+import { PLAN_LIMITS, type PlanType, type PlanLimitType } from "@/lib/constants/limits";
 
 export async function GET(request: Request) {
   const supabase = await createClient();
@@ -54,9 +55,17 @@ export async function GET(request: Request) {
     );
   }
 
-  // Free plan: show remaining daily uses (3 - today's debits), not DB credit_balance
+  // Build plan info for the response
+  const plan = profile.plan as PlanType;
+  const planConfig = PLAN_LIMITS[plan];
+
   let creditBalance = profile.credit_balance;
-  if (profile.plan === "free") {
+  let remaining = creditBalance;
+  let limit = planConfig.monthlyCredits ?? 0;
+
+  // Free plan: show remaining daily uses, not DB credit_balance
+  if (plan === "free") {
+    const dailyLimit = PLAN_LIMITS.free.dailyLimit!;
     const startOfToday = new Date();
     startOfToday.setUTCHours(0, 0, 0, 0);
     const { count } = await supabase
@@ -67,8 +76,23 @@ export async function GET(request: Request) {
       .eq("reason", "generate")
       .gte("created_at", startOfToday.toISOString());
     const todayUsed = count ?? 0;
-    creditBalance = Math.max(0, 3 - todayUsed);
+    creditBalance = Math.max(0, dailyLimit - todayUsed);
+    remaining = creditBalance;
+    limit = dailyLimit;
   }
+
+  // Build plan_info for frontend
+  const planInfo: {
+    type: PlanLimitType;
+    label: string;
+    limit: number;
+    remaining: number;
+  } = {
+    type: planConfig.type,
+    label: planConfig.labelKo,
+    limit,
+    remaining,
+  };
 
   return NextResponse.json({
     ok: true,
@@ -77,6 +101,7 @@ export async function GET(request: Request) {
       email: profile.email,
       plan: profile.plan,
       credit_balance: creditBalance,
+      plan_info: planInfo,
     },
   });
 }

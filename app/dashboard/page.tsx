@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CreditBadge } from "@/components/CreditBadge";
+import { CreditBadge, type PlanInfo } from "@/components/CreditBadge";
 import { PlanBadge } from "@/components/PlanBadge";
 import { UsageStats } from "@/components/UsageStats";
+import type { PlanType } from "@/lib/constants/limits";
+import "../(marketing)/landing.css";
 
-type Me = { email?: string; plan?: string; credit_balance?: number } | null;
+type Me = { email?: string; plan?: string; credit_balance?: number; plan_info?: PlanInfo } | null;
 type RecentItem = { id: string; created_at: string; channel: string; vibe: string; input_preview: string };
 
 const CHANNEL_LABELS: Record<string, string> = {
@@ -45,104 +47,143 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <main className="min-h-screen p-4 md:p-6">
-      <div className="mx-auto max-w-2xl">
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-          대시보드
-        </h1>
-        {me && (
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {me.email ?? "로그인됨"}
-          </p>
-        )}
+    <div className="landing-page">
+      <div className="landing-gradient" />
 
-        <div className="mt-6 flex flex-wrap items-center gap-4">
-          {me && (
-            <>
-              <PlanBadge plan={me.plan ?? null} />
-              <CreditBadge creditsLeft={me.credit_balance ?? null} />
-            </>
-          )}
-        </div>
-
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Link
-            href="/generate"
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            생성하러 가기
+      {/* Header */}
+      <header className="header-blur">
+        <div className="header-inner">
+          <Link href="/" className="logo">
+            VibeCopy
           </Link>
-          <Link
-            href="/pricing"
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
-          >
-            요금제 보기
-          </Link>
-        </div>
-
-        <div className="mt-8">
-          <UsageStats />
-        </div>
-
-        <section className="mt-8">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              최근 생성
-            </h2>
-            <Link
-              href="/history"
-              className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
-            >
-              전체 보기
+          <nav>
+            <Link href="/generate">카피 생성</Link>
+            <Link href="/history">생성 기록</Link>
+            <Link href="/me">내 정보</Link>
+            <Link href="/generate" className="btn btn-primary">
+              새로 생성
             </Link>
-          </div>
-          <div className="mt-3 rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-            {recent.length === 0 ? (
-              <p className="p-4 text-sm text-gray-500 dark:text-gray-400">
-                최근 생성 기록이 없습니다.
+          </nav>
+        </div>
+      </header>
+
+      <main>
+        <section className="content-section">
+          <div className="content-inner" style={{ maxWidth: "700px" }}>
+            <h1 className="content-title">대시보드</h1>
+            {me && (
+              <p className="content-subtitle" style={{ marginBottom: "2rem" }}>
+                {me.email ?? "로그인됨"}
               </p>
-            ) : (
-              <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-                {recent.map((item) => (
-                  <li key={item.id}>
-                    <Link
-                      href={`/history`}
-                      className="block p-4 hover:bg-gray-50 dark:hover:bg-gray-800"
-                    >
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {new Date(item.created_at).toLocaleString("ko-KR")}
-                      </span>
-                      <span className="ml-2 rounded bg-gray-100 px-1.5 py-0.5 text-xs dark:bg-gray-700">
-                        {CHANNEL_LABELS[item.channel] ?? item.channel}
-                      </span>
-                      <span className="ml-1 rounded bg-gray-100 px-1.5 py-0.5 text-xs dark:bg-gray-700">
-                        {VIBE_LABELS[item.vibe] ?? item.vibe}
-                      </span>
-                      <p className="mt-1 truncate text-sm text-gray-700 dark:text-gray-300">
-                        {item.input_preview}
-                      </p>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
             )}
+
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "1rem", marginBottom: "1.5rem" }}>
+              {me && (
+                <>
+                  <PlanBadge plan={me.plan ?? null} />
+                  <CreditBadge
+                    plan={(me.plan as PlanType) ?? "free"}
+                    planInfo={me.plan_info ?? null}
+                    creditsLeft={me.credit_balance ?? null}
+                  />
+                </>
+              )}
+            </div>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginBottom: "2rem" }}>
+              <Link href="/generate" className="btn btn-primary">
+                생성하러 가기
+              </Link>
+              <Link href="/pricing" className="btn btn-ghost">
+                요금제 보기
+              </Link>
+            </div>
+
+            <div style={{ marginBottom: "2rem" }}>
+              <UsageStats />
+            </div>
+
+            <div className="content-block">
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
+                <h2>최근 생성</h2>
+                <Link href="/history" style={{ color: "var(--indigo-400)", fontSize: "0.875rem", fontWeight: 500 }}>
+                  전체 보기
+                </Link>
+              </div>
+              <div className="demo-card">
+                {recent.length === 0 ? (
+                  <div style={{ padding: "1.5rem", textAlign: "center", color: "var(--text-muted)" }}>
+                    최근 생성 기록이 없습니다.
+                  </div>
+                ) : (
+                  <div>
+                    {recent.map((item, index) => (
+                      <Link
+                        key={item.id}
+                        href="/history"
+                        style={{
+                          display: "block",
+                          padding: "1rem 1.5rem",
+                          borderBottom: index < recent.length - 1 ? "1px solid var(--border-color)" : "none",
+                          transition: "background 0.2s",
+                        }}
+                        className="recent-item"
+                      >
+                        <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                          {new Date(item.created_at).toLocaleString("ko-KR")}
+                        </span>
+                        <span style={{
+                          marginLeft: "0.5rem",
+                          padding: "0.125rem 0.5rem",
+                          background: "rgba(99, 102, 241, 0.2)",
+                          borderRadius: "0.25rem",
+                          fontSize: "0.75rem",
+                          color: "var(--indigo-400)",
+                        }}>
+                          {CHANNEL_LABELS[item.channel] ?? item.channel}
+                        </span>
+                        <span style={{
+                          marginLeft: "0.25rem",
+                          padding: "0.125rem 0.5rem",
+                          background: "rgba(99, 102, 241, 0.2)",
+                          borderRadius: "0.25rem",
+                          fontSize: "0.75rem",
+                          color: "var(--indigo-400)",
+                        }}>
+                          {VIBE_LABELS[item.vibe] ?? item.vibe}
+                        </span>
+                        <p style={{
+                          marginTop: "0.5rem",
+                          fontSize: "0.875rem",
+                          color: "var(--text-secondary)",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}>
+                          {item.input_preview}
+                        </p>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </section>
+      </main>
 
-        <p className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
-          <Link href="/generate" className="underline focus:ring-2 focus:ring-blue-500">
-            카피 생성
-          </Link>
-          {" · "}
-          <Link href="/history" className="underline focus:ring-2 focus:ring-blue-500">
-            생성 기록
-          </Link>
-          {" · "}
-          <Link href="/me" className="underline focus:ring-2 focus:ring-blue-500">
-            내 정보
-          </Link>
-        </p>
-      </div>
-    </main>
+      {/* Footer */}
+      <footer className="page-footer">
+        <div className="footer-inner">
+          <span>© VibeCopy</span>
+          <nav>
+            <Link href="/generate">카피 생성</Link>
+            <Link href="/history">생성 기록</Link>
+            <Link href="/me">내 정보</Link>
+            <Link href="/">홈</Link>
+          </nav>
+        </div>
+      </footer>
+    </div>
   );
 }

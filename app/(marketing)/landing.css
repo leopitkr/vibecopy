@@ -1746,3 +1746,250 @@
 .landing-page .credit-badge-warning a:hover {
   opacity: 0.8 !important;
 }
+
+/* ==========================================
+   Comparison Table (ChatGPT vs VibeCopy)
+   ========================================== */
+
+.landing-page .compare-table {
+  width: 100% !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 1.25rem !important;
+  overflow: hidden !important;
+}
+
+.landing-page .compare-table th,
+.landing-page .compare-table td {
+  padding: 1.125rem 1.5rem !important;
+  text-align: left !important;
+  font-size: 0.9375rem !important;
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+.landing-page .compare-table thead th {
+  background: rgba(255, 255, 255, 0.03) !important;
+  font-weight: 600 !important;
+  font-size: 0.8125rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: var(--text-muted) !important;
+}
+
+.landing-page .compare-table thead th:first-child {
+  color: var(--text-muted) !important;
+}
+
+.landing-page .compare-table thead th:nth-child(2) {
+  color: var(--text-muted) !important;
+}
+
+.landing-page .compare-table thead th:nth-child(3) {
+  color: var(--indigo-400) !important;
+}
+
+.landing-page .compare-table tbody tr:last-child td {
+  border-bottom: none !important;
+}
+
+.landing-page .compare-category {
+  font-weight: 600 !important;
+  color: var(--text-secondary) !important;
+  white-space: nowrap !important;
+}
+
+.landing-page .compare-chatgpt {
+  color: var(--text-muted) !important;
+}
+
+.landing-page .compare-vibecopy {
+  color: var(--emerald-400) !important;
+  font-weight: 500 !important;
+}
+
+.landing-page .compare-verdict {
+  margin-top: 2.5rem !important;
+  text-align: center !important;
+  font-size: 1.05rem !important;
+  color: var(--text-secondary) !important;
+  line-height: 1.8 !important;
+}
+
+.landing-page .compare-verdict strong {
+  color: white !important;
+  font-weight: 700 !important;
+}
+
+/* ==========================================
+   Steps Grid (How It Works)
+   ========================================== */
+
+.landing-page .steps-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 1.5rem !important;
+}
+
+@media (max-width: 768px) {
+  .landing-page .steps-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .landing-page .compare-table th,
+  .landing-page .compare-table td {
+    padding: 0.875rem 1rem !important;
+    font-size: 0.8125rem !important;
+  }
+}
+
+.landing-page .step-card {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 1.25rem !important;
+  padding: 2rem 1.75rem !important;
+  text-align: center !important;
+  transition: all 0.2s !important;
+}
+
+.landing-page .step-card:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.landing-page .step-num {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 48px !important;
+  height: 48px !important;
+  background: linear-gradient(135deg, var(--indigo-500), var(--cyan-400)) !important;
+  border-radius: 50% !important;
+  font-size: 1.25rem !important;
+  font-weight: 800 !important;
+  color: white !important;
+  margin-bottom: 1.25rem !important;
+}
+
+.landing-page .step-title {
+  font-size: 1.125rem !important;
+  font-weight: 700 !important;
+  color: white !important;
+  margin-bottom: 0.625rem !important;
+}
+
+.landing-page .step-desc {
+  font-size: 0.9rem !important;
+  color: var(--text-secondary) !important;
+  line-height: 1.6 !important;
+}
+
+/* ==========================================
+   Final CTA Section
+   ========================================== */
+
+.landing-page .cta-section {
+  text-align: center !important;
+  padding: 6rem 2rem !important;
+  background: linear-gradient(180deg, transparent, rgba(99, 102, 241, 0.05) 50%, transparent) !important;
+}
+
+.landing-page .cta-section .cta-title {
+  font-size: clamp(1.75rem, 4vw, 2.5rem) !important;
+  font-weight: 800 !important;
+  color: white !important;
+  margin-bottom: 1rem !important;
+  line-height: 1.4 !important;
+}
+
+.landing-page .cta-section .cta-sub {
+  font-size: 1.125rem !important;
+  color: var(--text-secondary) !important;
+  margin-bottom: 2.5rem !important;
+}
+
+.landing-page .cta-section .btn {
+  padding: 1.125rem 2.5rem !important;
+  font-size: 1.05rem !important;
+}
+
+.landing-page .cta-link {
+  display: inline-block !important;
+  margin-top: 1.25rem !important;
+  font-size: 0.9rem !important;
+  color: var(--text-muted) !important;
+  text-decoration: none !important;
+  transition: color 0.2s !important;
+}
+
+.landing-page .cta-link:hover {
+  color: var(--indigo-400) !important;
+}
+
+/* ==========================================
+   Demo Toggle Button
+   ========================================== */
+
+.landing-page .demo-toggle-btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  padding: 1.25rem 2rem !important;
+  background: none !important;
+  border: none !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  color: var(--text-secondary) !important;
+  font-size: 0.9rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+}
+
+.landing-page .demo-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.03) !important;
+  color: white !important;
+}
+
+.landing-page .demo-toggle-icon {
+  font-size: 0.75rem !important;
+  transition: transform 0.2s !important;
+}
+
+.landing-page .demo-toggle-icon.expanded {
+  transform: rotate(180deg) !important;
+}
+
+.landing-page .demo-mid-cta {
+  text-align: center !important;
+  margin-top: 2.5rem !important;
+}
+
+.landing-page .demo-mid-cta .btn {
+  padding: 1rem 2rem !important;
+  font-size: 1rem !important;
+}
+
+/* Shortform script styling */
+.landing-page .demo-script {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.5rem !important;
+  padding: 1rem 1.25rem !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-radius: 0.75rem !important;
+}
+
+.landing-page .demo-script-label {
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: var(--indigo-400) !important;
+}
+
+.landing-page .demo-script-text {
+  color: var(--text-secondary) !important;
+  line-height: 1.7 !important;
+  font-size: 0.95rem !important;
+}

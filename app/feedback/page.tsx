@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useState } from "react";
+import "../(marketing)/landing.css";
 
 const PURPOSE_OPTIONS = [
   { value: "smartstore", label: "스마트스토어" },
@@ -57,152 +58,236 @@ export default function FeedbackPage() {
 
   if (sent) {
     return (
-      <main className="min-h-screen p-6">
-        <div className="mx-auto max-w-md text-center">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-            피드백을 보내주셔서 감사합니다
-          </h1>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">
-            소중한 의견으로 서비스를 개선하겠습니다.
-          </p>
-          <Link
-            href="/"
-            className="mt-8 inline-block rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            홈으로
-          </Link>
-        </div>
-      </main>
+      <div className="landing-page">
+        <div className="landing-gradient" />
+
+        {/* Header */}
+        <header className="header-blur">
+          <div className="header-inner">
+            <Link href="/" className="logo">
+              VibeCopy
+            </Link>
+            <nav>
+              <Link href="/pricing">요금제</Link>
+              <Link href="/guide">가이드</Link>
+              <Link href="/faq">FAQ</Link>
+              <Link href="/login" className="btn btn-ghost">
+                로그인
+              </Link>
+              <Link href="/generate" className="btn btn-primary">
+                시작하기
+              </Link>
+            </nav>
+          </div>
+        </header>
+
+        <main className="auth-section">
+          <div className="auth-content">
+            <div className="auth-box" style={{ textAlign: "center" }}>
+              <h1 className="auth-title">피드백을 보내주셔서 감사합니다</h1>
+              <p className="auth-subtitle">소중한 의견으로 서비스를 개선하겠습니다.</p>
+              <Link href="/" className="btn btn-primary" style={{ marginTop: "2rem" }}>
+                홈으로
+              </Link>
+            </div>
+          </div>
+        </main>
+      </div>
     );
   }
 
   return (
-    <main className="min-h-screen p-6">
-      <div className="mx-auto max-w-lg">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          피드백 보내기
-        </h1>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          베타 서비스 개선을 위해 1분만 소요해 주세요.
-        </p>
+    <div className="landing-page">
+      <div className="landing-gradient" />
 
-        <form onSubmit={onSubmit} className="mt-8 space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              사용 목적
-            </label>
-            <select
-              value={purpose}
-              onChange={(e) => setPurpose(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-              required
-            >
-              {PURPOSE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <span className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              만족도 (1–5)
-            </span>
-            <div className="mt-2 flex gap-4">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <label key={n} className="flex cursor-pointer items-center gap-2">
-                  <input
-                    type="radio"
-                    name="rating"
-                    value={n}
-                    checked={rating === n}
-                    onChange={() => setRating(n)}
-                    className="rounded border-gray-300 focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{n}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              가장 좋았던 점
-            </label>
-            <textarea
-              value={good}
-              onChange={(e) => setGood(e.target.value)}
-              rows={3}
-              maxLength={2000}
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-              placeholder="선택 입력"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              아쉬웠던 점
-            </label>
-            <textarea
-              value={bad}
-              onChange={(e) => setBad(e.target.value)}
-              rows={3}
-              maxLength={2000}
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-              placeholder="선택 입력"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              개선 요청
-            </label>
-            <textarea
-              value={request}
-              onChange={(e) => setRequest(e.target.value)}
-              rows={3}
-              maxLength={2000}
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-              placeholder="선택 입력"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              이메일 (선택, 답변 필요 시)
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              maxLength={256}
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-              placeholder="example@email.com"
-            />
-          </div>
-
-          {error && (
-            <p className="text-sm text-red-600 dark:text-red-400" role="alert">
-              {error}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-lg bg-blue-600 px-4 py-3 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-          >
-            {loading ? "제출 중…" : "피드백 보내기"}
-          </button>
-        </form>
-
-        <p className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
-          <Link href="/" className="underline focus:ring-2 focus:ring-blue-500">
-            홈으로
+      {/* Header */}
+      <header className="header-blur">
+        <div className="header-inner">
+          <Link href="/" className="logo">
+            VibeCopy
           </Link>
-        </p>
-      </div>
-    </main>
+          <nav>
+            <Link href="/pricing">요금제</Link>
+            <Link href="/guide">가이드</Link>
+            <Link href="/faq">FAQ</Link>
+            <Link href="/login" className="btn btn-ghost">
+              로그인
+            </Link>
+            <Link href="/generate" className="btn btn-primary">
+              시작하기
+            </Link>
+          </nav>
+        </div>
+      </header>
+
+      <main>
+        <section className="content-section">
+          <div className="content-inner" style={{ maxWidth: "560px" }}>
+            <h1 className="content-title">피드백 보내기</h1>
+            <p className="content-subtitle">베타 서비스 개선을 위해 1분만 소요해 주세요.</p>
+
+            <form onSubmit={onSubmit} className="auth-form" style={{ marginTop: "2rem" }}>
+              <div className="form-group">
+                <label>사용 목적</label>
+                <select
+                  value={purpose}
+                  onChange={(e) => setPurpose(e.target.value)}
+                  required
+                  style={{
+                    width: "100%",
+                    padding: "0.875rem 1rem",
+                    background: "var(--bg-card)",
+                    border: "1px solid var(--border-color)",
+                    borderRadius: "0.75rem",
+                    fontSize: "0.9375rem",
+                    color: "white",
+                  }}
+                >
+                  {PURPOSE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value} style={{ background: "#1a1a2e" }}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>만족도 (1–5)</label>
+                <div style={{ display: "flex", gap: "1rem", marginTop: "0.5rem" }}>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <label
+                      key={n}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        cursor: "pointer",
+                        padding: "0.5rem 1rem",
+                        background: rating === n ? "var(--indigo-500)" : "var(--bg-card)",
+                        border: "1px solid",
+                        borderColor: rating === n ? "var(--indigo-500)" : "var(--border-color)",
+                        borderRadius: "0.5rem",
+                        transition: "all 0.2s",
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="rating"
+                        value={n}
+                        checked={rating === n}
+                        onChange={() => setRating(n)}
+                        style={{ display: "none" }}
+                      />
+                      <span style={{ color: "white", fontWeight: 500 }}>{n}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>가장 좋았던 점</label>
+                <textarea
+                  value={good}
+                  onChange={(e) => setGood(e.target.value)}
+                  rows={3}
+                  maxLength={2000}
+                  placeholder="선택 입력"
+                  style={{
+                    width: "100%",
+                    padding: "0.875rem 1rem",
+                    background: "var(--bg-card)",
+                    border: "1px solid var(--border-color)",
+                    borderRadius: "0.75rem",
+                    fontSize: "0.9375rem",
+                    color: "white",
+                    resize: "vertical",
+                  }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>아쉬웠던 점</label>
+                <textarea
+                  value={bad}
+                  onChange={(e) => setBad(e.target.value)}
+                  rows={3}
+                  maxLength={2000}
+                  placeholder="선택 입력"
+                  style={{
+                    width: "100%",
+                    padding: "0.875rem 1rem",
+                    background: "var(--bg-card)",
+                    border: "1px solid var(--border-color)",
+                    borderRadius: "0.75rem",
+                    fontSize: "0.9375rem",
+                    color: "white",
+                    resize: "vertical",
+                  }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>개선 요청</label>
+                <textarea
+                  value={request}
+                  onChange={(e) => setRequest(e.target.value)}
+                  rows={3}
+                  maxLength={2000}
+                  placeholder="선택 입력"
+                  style={{
+                    width: "100%",
+                    padding: "0.875rem 1rem",
+                    background: "var(--bg-card)",
+                    border: "1px solid var(--border-color)",
+                    borderRadius: "0.75rem",
+                    fontSize: "0.9375rem",
+                    color: "white",
+                    resize: "vertical",
+                  }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>이메일 (선택, 답변 필요 시)</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  maxLength={256}
+                  placeholder="example@email.com"
+                />
+              </div>
+
+              {error && (
+                <div className="error-message" style={{ marginTop: 0 }}>
+                  {error}
+                </div>
+              )}
+
+              <button type="submit" disabled={loading} className="btn btn-primary">
+                {loading ? "제출 중…" : "피드백 보내기"}
+              </button>
+            </form>
+
+            <p className="back-link">
+              <Link href="/">홈으로</Link>
+            </p>
+          </div>
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer className="page-footer">
+        <div className="footer-inner">
+          <span>© VibeCopy</span>
+          <nav>
+            <Link href="/pricing">요금제</Link>
+            <Link href="/guide">이용 가이드</Link>
+            <Link href="/faq">FAQ</Link>
+            <Link href="/feedback">피드백</Link>
+          </nav>
+        </div>
+      </footer>
+    </div>
   );
 }

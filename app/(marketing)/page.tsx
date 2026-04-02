@@ -1,325 +1,390 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
+import "./landing.css";
 
-const PAIN_POINTS = [
-  "상세페이지 문구 작성이 오래 걸림",
-  "숏폼 대본 제작이 번거로움",
-  "매번 카피를 새로 고민해야 함",
-  "ChatGPT는 범용적이라 결과가 들쭉날쭉",
+// Design Ref: §3.2 — Comparison table data (6 rows)
+const COMPARISON_DATA = [
+  { category: "입력", chatgpt: "프롬프트 직접 작성", vibecopy: "상품 정보만 붙여넣기" },
+  { category: "출력", chatgpt: "텍스트 한 덩어리", vibecopy: "6가지 카테고리로 구분 정리" },
+  { category: "채널 최적화", chatgpt: "직접 수정해야 함", vibecopy: "스마트스토어·쿠팡·SNS·숏폼·제휴 자동" },
+  { category: "톤 조절", chatgpt: "매번 프롬프트 수정", vibecopy: "신뢰·후기·자극·프리미엄·공구 원클릭" },
+  { category: "정책 안전", chatgpt: "과장/금지표현 모름", vibecopy: "자동 필터링" },
+  { category: "소요 시간", chatgpt: "30분+ (시행착오)", vibecopy: "30초" },
 ];
 
-const EXAMPLE_HEADLINES = [
-  "이 가격에 이 스펙? 1+1 기대하시는 분만",
-  "오늘만 30% 추가 할인, 재고 소진 시 종료",
-  "리뷰 2만 개 돌파, 셀러 인증 상품",
+// Design Ref: §3.3 — Full 6-category demo output
+const DEMO_DATA = {
+  headlines: [
+    '"이탈리아 셰프가 직접 쓰는 그 오일, 드디어 국내 입고"',
+    '"마트 오일로 만족 못 하는 분들만 클릭하세요"',
+    '"파스타 맛이 달라지는 이유? 올리브 오일 하나 바꿨을 뿐"',
+  ],
+  benefits: [
+    "냉압착 방식으로 영양 손실 제로",
+    "산도 0.3% 이하 엑스트라 버진 등급",
+    "유통기한 걱정 없는 소용량 패키지",
+  ],
+  dm_messages: [
+    "이거 저번에 올린 올리브 오일인데 재입고됐어요! 수량 얼마 없어서 먼저 연락드려요",
+    "DM 주시면 공구가로 안내드릴게요, 마트보다 훨씬 저렴해요",
+    "혹시 올리브 오일 찾고 계셨으면 이번이 진짜 타이밍이에요",
+  ],
+  comment_triggers: [
+    "써보신 분 후기 좀 알려주세요!",
+    "보관 팁 아시는 분 댓글로 공유해주세요",
+    "이거 vs 코스트코 오일, 어떤 게 나을까요?",
+  ],
+  scarcity_lines: [
+    "이번 입고분 200병 중 벌써 절반 나갔어요",
+    "다음 입고 미정이라 지금 아니면 한참 기다리셔야 해요",
+    "오늘 자정까지만 공구가 유지됩니다",
+  ],
+  shortform_scripts: [
+    { hook: "마트 올리브 오일이랑 뭐가 다르냐고요?", body: "산도 0.3% 이하만 엑스트라 버진인데, 마트 대부분은 1% 넘어요. 이건 직수입이라 가격도 비슷한데 퀄리티가 달라요." },
+    { hook: "파스타 맛이 갑자기 달라진 이유", body: "올리브 오일 바꿨을 뿐인데 향이 완전 달라요. 셰프들이 오일에 집착하는 이유를 알겠더라고요." },
+  ],
+};
+
+const DEMO_SECTIONS = [
+  { key: "headlines", icon: "🎯", label: "후킹 헤드라인", dataKey: "headlines" as const },
+  { key: "benefits", icon: "💎", label: "핵심 베네핏", dataKey: "benefits" as const },
+  { key: "dm_messages", icon: "💬", label: "DM 유도 멘트", dataKey: "dm_messages" as const },
+  { key: "comment_triggers", icon: "💭", label: "댓글 유도 문구", dataKey: "comment_triggers" as const },
+  { key: "scarcity_lines", icon: "⏰", label: "마감/희소성 문구", dataKey: "scarcity_lines" as const },
 ];
 
-const EXAMPLE_CTAS = [
-  "지금 구매하고 리뷰 작성 시 2천 원 적립",
-  "장바구니 담고 쿠폰 받기",
-];
-
-const FAQ_ITEMS = [
+// Design Ref: §3.4 — 3-step how-it-works
+const STEPS = [
   {
-    q: "무료는 정말 3회만 사용할 수 있나요?",
-    a: "네. 무료 플랜은 하루 3회까지 생성할 수 있습니다. 더 많이 쓰시려면 Standard(월 19,000원) 또는 Pro(월 49,000원) 요금제를 이용해 주세요.",
+    num: "1",
+    title: "붙여넣기",
+    desc: "상품 정보(URL 또는 텍스트)를 입력창에 붙여넣으세요",
   },
   {
-    q: "크레딧은 언제 리셋되나요?",
-    a: "Standard·Pro 플랜의 크레딧은 매월 결제일 기준으로 리셋됩니다. 무료 플랜은 매일 자정에 일 3회 한도가 리셋됩니다.",
+    num: "2",
+    title: "채널·톤 선택",
+    desc: "판매 채널(스마트스토어, 쿠팡, SNS 등)과 톤(신뢰, 후기, 자극 등)을 선택하세요",
   },
   {
-    q: "생성 결과는 저장되나요?",
-    a: "네. 생성한 카피 패키지는 히스토리에서 언제든 다시 볼 수 있고, 재생성·복사 버튼으로 재활용할 수 있습니다.",
-  },
-  {
-    q: "결제는 안전한가요?",
-    a: "Stripe를 통해 결제를 처리하며, 카드 정보는 저장하지 않습니다. 정기 결제는 언제든 해지할 수 있습니다.",
-  },
-  {
-    q: "어떤 채널을 지원하나요?",
-    a: "스마트스토어, 쿠팡, 제휴마케팅, SNS, 숏폼 등 채널별로 맞춤 톤으로 생성됩니다.",
-  },
-  {
-    q: "입력은 어떻게 하나요?",
-    a: "상품 URL만 넣거나, 상품명·특징·가격·타겟을 직접 입력하면 됩니다. 1,000자 이내로 요약해 주시면 좋습니다.",
+    num: "3",
+    title: "복사해서 바로 사용",
+    desc: "32개 카피가 즉시 생성됩니다. 원클릭 복사 후 바로 판매글에 사용하세요",
   },
 ];
 
 export default function LandingPage() {
+  const [copiedSection, setCopiedSection] = useState<string | null>(null);
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(
+    new Set(["headlines", "benefits"])
+  );
+
+  const handleCopy = async (text: string, section: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedSection(section);
+      setTimeout(() => setCopiedSection(null), 1500);
+    } catch {
+      console.error("복사 실패");
+    }
+  };
+
+  const toggleSection = (key: string) => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const copyAll = () => {
+    const allText = [
+      "🎯 후킹 헤드라인",
+      ...DEMO_DATA.headlines,
+      "",
+      "💎 핵심 베네핏",
+      ...DEMO_DATA.benefits,
+      "",
+      "💬 DM 유도 멘트",
+      ...DEMO_DATA.dm_messages,
+      "",
+      "💭 댓글 유도 문구",
+      ...DEMO_DATA.comment_triggers,
+      "",
+      "⏰ 마감/희소성 문구",
+      ...DEMO_DATA.scarcity_lines,
+      "",
+      "🎬 숏폼 스크립트",
+      ...DEMO_DATA.shortform_scripts.map((s, i) => `[${i + 1}] Hook: ${s.hook}\nBody: ${s.body}`),
+    ].join("\n");
+    handleCopy(allText, "all");
+  };
+
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-950">
-      {/* Hero */}
-      <header className="border-b border-gray-200 dark:border-gray-800">
-        <div className="mx-auto max-w-6xl px-4 py-4 sm:px-6">
-          <div className="flex items-center justify-between">
-            <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
-              VibeCopy
-            </span>
-            <nav className="flex gap-4">
-              <Link
-                href="/pricing"
-                className="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-              >
-                요금제
-              </Link>
-              <Link
-                href="/login"
-                className="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-              >
-                로그인
-              </Link>
-            </nav>
-          </div>
+    <div className="landing-page">
+      <div className="landing-gradient" />
+
+      {/* Header */}
+      <header className="header-blur">
+        <div className="header-inner">
+          <Link href="/" className="logo">
+            VibeCopy
+          </Link>
+          <nav>
+            <Link href="/pricing">요금제</Link>
+            <Link href="/guide">가이드</Link>
+            <Link href="/faq">FAQ</Link>
+            <Link href="/login" className="btn btn-ghost">
+              로그인
+            </Link>
+            <Link href="/generate" className="btn btn-primary">
+              시작하기
+            </Link>
+          </nav>
         </div>
       </header>
 
       <main>
-        <section className="mx-auto max-w-6xl px-4 py-16 text-center sm:px-6 sm:py-24">
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl md:text-5xl">
-            URL만 넣으면 바로 팔리는 카피 세트 완성
-          </h1>
-          <p className="mt-4 text-lg text-gray-600 dark:text-gray-400 sm:text-xl">
-            스마트스토어 · 쿠팡 · 공동구매 셀러 전용 AI 카피 생성기
-          </p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Link
-              href="/generate"
-              className="w-full rounded-lg bg-blue-600 px-6 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto"
-            >
-              지금 무료로 3회 사용하기
-            </Link>
-            <Link
-              href="/pricing"
-              className="w-full rounded-lg border border-gray-300 bg-white px-6 py-3 text-base font-semibold text-gray-700 transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800 sm:w-auto"
-            >
-              요금제 보기
-            </Link>
-          </div>
-        </section>
-
-        {/* Problem */}
-        <section className="border-t border-gray-200 bg-gray-50/50 py-16 dark:border-gray-800 dark:bg-gray-900/30">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <h2 className="text-center text-2xl font-bold text-gray-900 dark:text-white">
-              이런 고민 있으시죠?
-            </h2>
-            <ul className="mt-8 grid gap-4 sm:grid-cols-2">
-              {PAIN_POINTS.map((point, i) => (
-                <li
-                  key={i}
-                  className="flex items-start gap-3 rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800"
-                >
-                  <span className="text-red-500 dark:text-red-400">×</span>
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {point}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-6 text-center text-gray-600 dark:text-gray-400">
-              URL 또는 상품 정보만 입력하면 → 즉시 판매 가능한 카피 패키지 생성
+        {/* ===== Section 1: Hero ===== */}
+        {/* Plan SC1: Hero communicates quantified value ("32 pieces") */}
+        <section className="hero">
+          <div className="hero-inner">
+            <div className="badge">
+              <span className="badge-dot" />
+              셀러 전용 판매글 생성기
+            </div>
+            <h1>
+              상품 정보 하나로
+              <br />
+              <span className="text-gradient">판매글 32개가 한번에 나옵니다</span>
+            </h1>
+            <p>
+              헤드라인, 베네핏, DM 멘트, 댓글 유도, 마감 문구, 숏폼 대본까지
+              <br />
+              — 채널별로 톤까지 맞춰서.
+            </p>
+            <div className="hero-buttons">
+              <Link href="/generate" className="btn btn-primary">
+                무료로 카피 만들어보기
+              </Link>
+              <Link href="#demo" className="btn btn-ghost">
+                결과물 미리보기
+              </Link>
+            </div>
+            <p className="hero-note">
+              회원가입하면 <strong>매일 3회 무료</strong> · 카드 등록 없이 시작
             </p>
           </div>
         </section>
 
-        {/* Result Example */}
-        <section className="py-16">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <h2 className="text-center text-2xl font-bold text-gray-900 dark:text-white">
-              이렇게 나와요
-            </h2>
-            <p className="mt-2 text-center text-gray-600 dark:text-gray-400">
-              헤드라인, 베네핏, 숏폼 대본, CTA까지 한 번에
-            </p>
-            <div className="mx-auto mt-8 max-w-2xl space-y-4">
-              <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
-                <h3 className="mb-2 text-sm font-semibold text-gray-800 dark:text-gray-200">
-                  헤드라인 예시
-                </h3>
-                <ul className="list-inside list-decimal space-y-1 text-sm text-gray-700 dark:text-gray-300">
-                  {EXAMPLE_HEADLINES.map((h, i) => (
-                    <li key={i}>{h}</li>
-                  ))}
-                </ul>
+        {/* ===== Section 2: Comparison ===== */}
+        {/* Plan SC2: ChatGPT comparison section kills the objection */}
+        <section>
+          <div className="section-inner">
+            <p className="section-label">비교</p>
+            <h2 className="section-title">ChatGPT로 하면 되지 않나요?</h2>
+
+            <table className="compare-table">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>ChatGPT</th>
+                  <th>VibeCopy</th>
+                </tr>
+              </thead>
+              <tbody>
+                {COMPARISON_DATA.map((row) => (
+                  <tr key={row.category}>
+                    <td className="compare-category">{row.category}</td>
+                    <td className="compare-chatgpt">{row.chatgpt}</td>
+                    <td className="compare-vibecopy">{row.vibecopy}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div className="compare-verdict">
+              ChatGPT는 &ldquo;글 쓰는 AI&rdquo;입니다.
+              <br />
+              VibeCopy는 <strong>&ldquo;판매글 패키지를 찍어내는 도구&rdquo;</strong>입니다.
+            </div>
+          </div>
+        </section>
+
+        {/* ===== Section 3: Demo ===== */}
+        {/* Plan SC3: Demo shows all 6 output categories with copy buttons */}
+        <section id="demo">
+          <div className="section-inner">
+            <p className="section-label">결과물</p>
+            <h2 className="section-title">이런 결과물이 30초 만에 나옵니다</h2>
+
+            <div className="demo-card">
+              {/* Demo Header */}
+              <div className="demo-header">
+                <div className="demo-header-left">
+                  <span className="demo-badge">예시</span>
+                  <span className="demo-title">프리미엄 올리브 오일</span>
+                </div>
+                <button onClick={copyAll} className="demo-copy-btn">
+                  {copiedSection === "all" ? "복사됨!" : "전체 복사"}
+                </button>
               </div>
-              <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
-                <h3 className="mb-2 text-sm font-semibold text-gray-800 dark:text-gray-200">
-                  CTA 예시
-                </h3>
-                <ul className="list-inside list-decimal space-y-1 text-sm text-gray-700 dark:text-gray-300">
-                  {EXAMPLE_CTAS.map((c, i) => (
-                    <li key={i}>{c}</li>
-                  ))}
-                </ul>
+
+              {/* Text-based sections (5 categories) */}
+              {DEMO_SECTIONS.map((section) => {
+                const isExpanded = expandedSections.has(section.key);
+                const items = DEMO_DATA[section.dataKey] as string[];
+
+                return (
+                  <div key={section.key}>
+                    <button
+                      className="demo-toggle-btn"
+                      onClick={() => toggleSection(section.key)}
+                    >
+                      <div className="demo-section-title">
+                        <span className="demo-section-icon">{section.icon}</span>
+                        <span className="demo-section-label">{section.label}</span>
+                      </div>
+                      <span className={`demo-toggle-icon ${isExpanded ? "expanded" : ""}`}>
+                        ▼
+                      </span>
+                    </button>
+
+                    {isExpanded && (
+                      <div className="demo-section">
+                        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "1rem" }}>
+                          <button
+                            onClick={() => handleCopy(items.join("\n"), section.key)}
+                            className="demo-copy-btn"
+                          >
+                            {copiedSection === section.key ? "복사됨!" : "복사"}
+                          </button>
+                        </div>
+                        <div className="demo-items">
+                          {items.map((text, i) => (
+                            <div key={i} className="demo-item">
+                              <span className="demo-item-num">{i + 1}</span>
+                              <span>{text}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Shortform Scripts */}
+              {(() => {
+                const isExpanded = expandedSections.has("shortform");
+                return (
+                  <div>
+                    <button
+                      className="demo-toggle-btn"
+                      onClick={() => toggleSection("shortform")}
+                    >
+                      <div className="demo-section-title">
+                        <span className="demo-section-icon">🎬</span>
+                        <span className="demo-section-label">숏폼 스크립트</span>
+                      </div>
+                      <span className={`demo-toggle-icon ${isExpanded ? "expanded" : ""}`}>
+                        ▼
+                      </span>
+                    </button>
+
+                    {isExpanded && (
+                      <div className="demo-section">
+                        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "1rem" }}>
+                          <button
+                            onClick={() =>
+                              handleCopy(
+                                DEMO_DATA.shortform_scripts
+                                  .map((s, i) => `[${i + 1}] Hook: ${s.hook}\nBody: ${s.body}`)
+                                  .join("\n\n"),
+                                "shortform"
+                              )
+                            }
+                            className="demo-copy-btn"
+                          >
+                            {copiedSection === "shortform" ? "복사됨!" : "복사"}
+                          </button>
+                        </div>
+                        <div className="demo-items">
+                          {DEMO_DATA.shortform_scripts.map((script, i) => (
+                            <div key={i} className="demo-script">
+                              <span className="demo-script-label">Hook</span>
+                              <span className="demo-script-text">{script.hook}</span>
+                              <span className="demo-script-label">Body</span>
+                              <span className="demo-script-text">{script.body}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Demo Footer */}
+              <div className="demo-footer">
+                실제 생성 시 헤드라인 10개, 베네핏 5개, DM 5개, 댓글 5개, 마감 5개, 숏폼 2개 — <span>총 32개</span>가 나옵니다
               </div>
             </div>
-            <div className="mt-8 text-center">
-              <Link
-                href="/generate"
-                className="inline-block rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
-              >
-                직접 생성해 보기
+
+            {/* Mid CTA */}
+            <div className="demo-mid-cta">
+              <Link href="/generate" className="btn btn-primary">
+                내 상품으로 직접 만들어보기 →
               </Link>
             </div>
           </div>
         </section>
 
-        {/* Pricing Preview */}
-        <section className="border-t border-gray-200 bg-gray-50/50 py-16 dark:border-gray-800 dark:bg-gray-900/30">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <h2 className="text-center text-2xl font-bold text-gray-900 dark:text-white">
-              요금제
-            </h2>
-            <div className="mt-8 grid gap-6 sm:grid-cols-3">
-              <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Free
-                </h3>
-                <p className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
-                  0원
-                </p>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  일 3회 생성
-                </p>
-                <ul className="mt-4 list-inside list-disc text-sm text-gray-600 dark:text-gray-300">
-                  <li>기본 바이브 사용</li>
-                  <li>생성 기록 저장</li>
-                </ul>
-                <Link
-                  href="/generate"
-                  className="mt-6 block w-full rounded-lg border border-gray-300 py-2 text-center text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
-                >
-                  시작하기
-                </Link>
-              </div>
-              <div className="rounded-xl border-2 border-blue-500 bg-white p-6 shadow-sm dark:bg-gray-800">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Standard
-                </h3>
-                <p className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
-                  19,000원<span className="text-sm font-normal text-gray-500">/월</span>
-                </p>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  월 500 크레딧
-                </p>
-                <ul className="mt-4 list-inside list-disc text-sm text-gray-600 dark:text-gray-300">
-                  <li>전체 바이브 사용</li>
-                  <li>히스토리 저장</li>
-                </ul>
-                <Link
-                  href="/pricing"
-                  className="mt-6 block w-full rounded-lg bg-blue-600 py-2 text-center text-sm font-medium text-white hover:bg-blue-700"
-                >
-                  요금제 보기
-                </Link>
-              </div>
-              <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Pro
-                </h3>
-                <p className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
-                  49,000원<span className="text-sm font-normal text-gray-500">/월</span>
-                </p>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  무제한 생성
-                </p>
-                <ul className="mt-4 list-inside list-disc text-sm text-gray-600 dark:text-gray-300">
-                  <li>브랜드 보이스 저장</li>
-                  <li>CSV 다운로드</li>
-                </ul>
-                <Link
-                  href="/pricing"
-                  className="mt-6 block w-full rounded-lg border border-gray-300 py-2 text-center text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
-                >
-                  요금제 보기
-                </Link>
-              </div>
+        {/* ===== Section 4: How It Works ===== */}
+        <section>
+          <div className="section-inner">
+            <p className="section-label">사용법</p>
+            <h2 className="section-title">3단계면 끝</h2>
+
+            <div className="steps-grid">
+              {STEPS.map((step) => (
+                <div key={step.num} className="step-card">
+                  <div className="step-num">{step.num}</div>
+                  <div className="step-title">{step.title}</div>
+                  <div className="step-desc">{step.desc}</div>
+                </div>
+              ))}
             </div>
           </div>
         </section>
 
-        {/* FAQ */}
-        <section className="py-16">
-          <div className="mx-auto max-w-3xl px-4 sm:px-6">
-            <h2 className="text-center text-2xl font-bold text-gray-900 dark:text-white">
-              자주 묻는 질문
-            </h2>
-            <dl className="mt-8 space-y-6">
-              {FAQ_ITEMS.map((item, i) => (
-                <div
-                  key={i}
-                  className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800"
-                >
-                  <dt className="font-semibold text-gray-900 dark:text-white">
-                    {item.q}
-                  </dt>
-                  <dd className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                    {item.a}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        </section>
-
-        {/* Final CTA */}
-        <section className="border-t border-gray-200 bg-blue-600 py-16 dark:border-gray-800">
-          <div className="mx-auto max-w-6xl px-4 text-center sm:px-6">
-            <h2 className="text-2xl font-bold text-white">
-              지금 바로 카피 패키지를 만들어 보세요
-            </h2>
-            <p className="mt-2 text-blue-100">
-              가입 후 무료 3회 생성 가능
-            </p>
-            <Link
-              href="/generate"
-              className="mt-8 inline-block rounded-lg bg-white px-8 py-4 text-lg font-semibold text-blue-600 shadow-sm transition hover:bg-blue-50"
-            >
-              무료로 시작하기
-            </Link>
-          </div>
+        {/* ===== Section 5: Final CTA ===== */}
+        {/* Plan SC4: Pricing hook with link to /pricing */}
+        <section className="cta-section">
+          <h2 className="cta-title">지금 상품 정보 하나만 넣어보세요</h2>
+          <p className="cta-sub">30초 후에 판매글 32개를 받아보실 수 있습니다.</p>
+          <Link href="/generate" className="btn btn-primary">
+            무료로 시작하기
+          </Link>
+          <br />
+          <Link href="/pricing" className="cta-link">
+            요금제 보기 →
+          </Link>
         </section>
       </main>
 
-      <footer className="border-t border-gray-200 py-8 dark:border-gray-800">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              © VibeCopy. 셀러 전용 AI 카피 생성기.
-            </span>
-            <div className="flex flex-wrap items-center justify-center gap-6">
-              <Link
-                href="/pricing"
-                className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                요금제
-              </Link>
-              <Link
-                href="/guide"
-                className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                이용 가이드
-              </Link>
-              <Link
-                href="/faq"
-                className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                FAQ
-              </Link>
-              <Link
-                href="/feedback"
-                className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                피드백 보내기
-              </Link>
-              <Link
-                href="/login"
-                className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                로그인
-              </Link>
-            </div>
-          </div>
+      {/* Footer */}
+      <footer className="page-footer">
+        <div className="footer-inner">
+          <span>© VibeCopy</span>
+          <nav>
+            <Link href="/pricing">요금제</Link>
+            <Link href="/guide">이용 가이드</Link>
+            <Link href="/faq">FAQ</Link>
+            <Link href="/feedback">피드백</Link>
+          </nav>
         </div>
       </footer>
     </div>

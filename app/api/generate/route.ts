@@ -2,19 +2,23 @@ import type OpenAI from "openai";
 import { createHash } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { debitCredits, refundCredits } from "@/lib/db/credits";
-import { EnvError } from "@/lib/env/server";
+import { EnvError, safeServerEnvSummary } from "@/lib/env/server";
 import { writeErrorLog } from "@/lib/logging/errorLog";
 import {
   getOpenAIClient,
   OPENAI_MAX_OUTPUT_TOKENS,
   OPENAI_MODEL,
 } from "@/lib/openai/client";
-import { buildGenerateCopyMessages } from "@/lib/prompts/generateCopy";
+import {
+  buildGenerateCopyMessages,
+  STRICT_JSON_RETRY_PROMPT,
+  validateProductInput,
+} from "@/lib/prompts/generateCopy";
 import { checkRateLimit, type PlanType } from "@/lib/rateLimit";
 import { z } from "zod";
 import { NextResponse } from "next/server";
 
-const INPUT_VALUE_MAX_LENGTH = 1000;
+const INPUT_VALUE_MAX_LENGTH = 2000;
 const CACHE_WINDOW_HOURS = 24;
 
 // Manual test scenarios (run with valid session cookie):
@@ -61,33 +65,87 @@ const requestSchema = z.object({
   vibe: vibeEnum,
 });
 
-const riskCheckSchema = z.object({
-  level: z.enum(["low", "medium", "high"]),
-  flags: z.array(z.string()),
-  notes: z.array(z.string()),
-});
-
+// New conversion-focused response schema
 const responseSchema = z.object({
-  headlines: z.array(z.string()).length(10),
+  hook_headlines: z.array(z.string()).length(10),
   benefits: z.array(z.string()).length(5),
+  dm_messages: z.array(z.string()).length(5),
+  comment_triggers: z.array(z.string()).length(5),
+  scarcity_lines: z.array(z.string()).length(5),
   shortform_scripts: z
-    .array(z.object({ hook: z.string(), script: z.string() }))
+    .array(z.object({ hook: z.string(), body: z.string() }))
     .length(2),
-  ctas: z.array(z.string()).length(5),
-  risk_check: riskCheckSchema,
 });
 
 type GenerateOutput = z.infer<typeof responseSchema>;
 
-const REPAIR_PROMPT =
-  "Your previous response was invalid JSON or did not match the required schema. Return only a single JSON object with keys: headlines (10 strings), benefits (5 strings), shortform_scripts (2 objects with hook and script), ctas (5 strings), risk_check (object with level, flags, notes). No markdown.";
+// Normalize output to exact counts (trim excess, pad if slightly short)
+function normalizeOutput(raw: Record<string, unknown>): Record<string, unknown> {
+  const ensureArrayLength = (arr: unknown, len: number): string[] => {
+    if (!Array.isArray(arr)) return Array(len).fill("");
+    const stringArr = arr.map((item) => (typeof item === "string" ? item : String(item ?? "")));
+    if (stringArr.length >= len) return stringArr.slice(0, len);
+    // Pad with last item or empty string if slightly short
+    while (stringArr.length < len) {
+      stringArr.push(stringArr[stringArr.length - 1] || "");
+    }
+    return stringArr;
+  };
+
+  const ensureScripts = (arr: unknown): Array<{ hook: string; body: string }> => {
+    if (!Array.isArray(arr)) return [{ hook: "", body: "" }, { hook: "", body: "" }];
+    const scripts = arr.slice(0, 2).map((item) => {
+      if (typeof item !== "object" || item === null) return { hook: "", body: "" };
+      const obj = item as Record<string, unknown>;
+      return {
+        hook: typeof obj.hook === "string" ? obj.hook : String(obj.hook ?? ""),
+        body: typeof obj.body === "string" ? obj.body : (typeof obj.script === "string" ? obj.script : String(obj.body ?? obj.script ?? "")),
+      };
+    });
+    while (scripts.length < 2) {
+      scripts.push({ hook: "", body: "" });
+    }
+    return scripts;
+  };
+
+  return {
+    hook_headlines: ensureArrayLength(raw.hook_headlines ?? raw.headlines, 10),
+    benefits: ensureArrayLength(raw.benefits, 5),
+    dm_messages: ensureArrayLength(raw.dm_messages, 5),
+    comment_triggers: ensureArrayLength(raw.comment_triggers, 5),
+    scarcity_lines: ensureArrayLength(raw.scarcity_lines, 5),
+    shortform_scripts: ensureScripts(raw.shortform_scripts),
+  };
+}
 
 function parseAndValidate(jsonStr: string): GenerateOutput | null {
   try {
-    const parsed = JSON.parse(jsonStr) as unknown;
-    const result = responseSchema.safeParse(parsed);
-    return result.success ? result.data : null;
-  } catch {
+    // Try to extract JSON from markdown code fence if present
+    let cleanJson = jsonStr.trim();
+    const codeBlockMatch = cleanJson.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (codeBlockMatch) {
+      cleanJson = codeBlockMatch[1].trim();
+    }
+
+    const parsed = JSON.parse(cleanJson) as Record<string, unknown>;
+
+    // First try strict validation
+    const strictResult = responseSchema.safeParse(parsed);
+    if (strictResult.success) {
+      return strictResult.data;
+    }
+
+    // If strict fails, try normalizing the output
+    const normalized = normalizeOutput(parsed);
+    const normalizedResult = responseSchema.safeParse(normalized);
+    if (normalizedResult.success) {
+      return normalizedResult.data;
+    }
+
+    console.log("[parseAndValidate] validation failed:", normalizedResult.error.issues);
+    return null;
+  } catch (e) {
+    console.log("[parseAndValidate] JSON parse error:", e);
     return null;
   }
 }
@@ -99,16 +157,23 @@ function buildRetryMessages(
   return [
     ...base,
     { role: "assistant", content: invalidContent },
-    { role: "user", content: REPAIR_PROMPT },
+    { role: "user", content: STRICT_JSON_RETRY_PROMPT },
   ];
 }
 
 export async function POST(request: Request) {
+  // [1] 단계 로깅: 환경 변수 존재 여부 (값은 노출하지 않음)
+  const envSummary = safeServerEnvSummary();
+  console.log("[generate] step 1 env summary:", JSON.stringify(envSummary));
+
   let supabase: Awaited<ReturnType<typeof createClient>>;
   try {
+    console.log("[generate] step 2 createClient...");
     supabase = await createClient();
+    console.log("[generate] step 2 createClient ok");
   } catch (e) {
     if (e instanceof EnvError) {
+      console.error("[generate] SERVER_MISCONFIGURED at createClient:", e.message);
       return NextResponse.json(
         {
           error: {
@@ -124,63 +189,68 @@ export async function POST(request: Request) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json(
-      { error: { code: "UNAUTHORIZED", message: "Not logged in" } },
-      { status: 401 }
-    );
-  }
 
-  const { data: profile } = await supabase
-    .from("users")
-    .select("plan")
-    .eq("id", user.id)
-    .single();
-  const plan: PlanType =
-    profile?.plan === "standard" || profile?.plan === "pro"
-      ? profile.plan
-      : "free";
+  // Guest mode: user can be null
+  const isGuest = !user;
+
+  let plan: PlanType = "free";
+  if (user) {
+    const { data: profile } = await supabase
+      .from("users")
+      .select("plan")
+      .eq("id", user.id)
+      .single();
+    plan =
+      profile?.plan === "standard" || profile?.plan === "pro"
+        ? profile.plan
+        : "free";
+  }
 
   const forwarded = request.headers.get("x-forwarded-for");
   const ip =
     (forwarded?.split(",")[0]?.trim() ?? request.headers.get("x-real-ip")) ||
     "unknown";
 
-  const rate = await checkRateLimit(supabase, {
-    userId: user.id,
-    ip,
-    plan,
-  });
-  if (!rate.allowed) {
-    try {
-      await writeErrorLog(supabase, {
-        route: "/api/generate",
-        method: "POST",
-        status: 429,
-        error_code: "RATE_LIMIT_EXCEEDED",
-        message: rate.message ?? "Too many requests. Please wait.",
-        details: { rate_limit_outcome: "blocked" },
-        user_id: user.id,
-        ip,
-        user_agent: request.headers.get("user-agent") ?? null,
-      });
-    } catch {
-      /* best-effort */
-    }
-    return NextResponse.json(
-      {
-        error: {
-          code: "RATE_LIMIT_EXCEEDED",
+  // Skip rate limiting for guests (handled on client side with localStorage)
+  if (!isGuest) {
+    const rate = await checkRateLimit(supabase, {
+      userId: user!.id,
+      ip,
+      plan,
+    });
+    if (!rate.allowed) {
+      try {
+        await writeErrorLog(supabase, {
+          route: "/api/generate",
+          method: "POST",
+          status: 429,
+          error_code: "RATE_LIMIT_EXCEEDED",
           message: rate.message ?? "Too many requests. Please wait.",
+          details: { rate_limit_outcome: "blocked" },
+          user_id: user!.id,
+          ip,
+          user_agent: request.headers.get("user-agent") ?? null,
+        });
+      } catch {
+        /* best-effort */
+      }
+      return NextResponse.json(
+        {
+          error: {
+            code: "RATE_LIMIT_EXCEEDED",
+            message: rate.message ?? "Too many requests. Please wait.",
+          },
         },
-      },
-      { status: 429 }
-    );
+        { status: 429 }
+      );
+    }
   }
 
   let body: unknown;
   try {
+    console.log("[generate] step 3 parsing body...");
     body = await request.json();
+    console.log("[generate] step 3 body parsed:", JSON.stringify(body));
   } catch {
     try {
       await writeErrorLog(supabase, {
@@ -189,7 +259,7 @@ export async function POST(request: Request) {
         status: 400,
         error_code: "BAD_REQUEST",
         message: "Request body must be JSON",
-        user_id: user.id,
+        user_id: user?.id ?? null,
         ip,
         user_agent: request.headers.get("user-agent") ?? null,
       });
@@ -202,12 +272,14 @@ export async function POST(request: Request) {
     );
   }
 
+  console.log("[generate] step 4 validating schema...");
   const parsed = requestSchema.safeParse(body);
   if (!parsed.success) {
+    console.log("[generate] step 4 schema validation failed:", JSON.stringify(parsed.error.issues));
     const inputTooLong = parsed.error.issues.some(
       (i) =>
         i.path.join(".") === "input_value" &&
-        (i.code === "too_big" || String(i.message).includes("1000"))
+        (i.code === "too_big" || String(i.message).includes("2000"))
     );
     if (inputTooLong) {
       try {
@@ -216,8 +288,8 @@ export async function POST(request: Request) {
           method: "POST",
           status: 400,
           error_code: "INPUT_TOO_LONG",
-          message: "입력 길이가 너무 깁니다. 핵심만 요약해 주세요.",
-          user_id: user.id,
+          message: "입력 길이가 너무 깁니다. 2000자 이내로 입력해 주세요.",
+          user_id: user?.id ?? null,
           ip,
           user_agent: request.headers.get("user-agent") ?? null,
         });
@@ -228,7 +300,7 @@ export async function POST(request: Request) {
         {
           error: {
             code: "INPUT_TOO_LONG",
-            message: "입력 길이가 너무 깁니다. 핵심만 요약해 주세요.",
+            message: "입력 길이가 너무 깁니다. 2000자 이내로 입력해 주세요.",
           },
         },
         { status: 400 }
@@ -244,7 +316,7 @@ export async function POST(request: Request) {
         status: 400,
         error_code: "BAD_REQUEST",
         message: msg,
-        user_id: user.id,
+        user_id: user?.id ?? null,
         ip,
         user_agent: request.headers.get("user-agent") ?? null,
       });
@@ -260,179 +332,18 @@ export async function POST(request: Request) {
   const { idempotency_key, input_type, input_value, channel, vibe } =
     parsed.data;
 
-  const normalizedInput = input_value.trim();
-  const cacheKeyPayload = JSON.stringify({
-    channel,
-    vibe,
-    normalized_input: normalizedInput,
-  });
-  const cache_key =
-    createHash("sha256").update(cacheKeyPayload).digest("hex");
-
-  const windowStart = new Date(Date.now() - CACHE_WINDOW_HOURS * 60 * 60 * 1000);
-  const { data: cached } = await supabase
-    .from("generations")
-    .select("id, output_json")
-    .eq("user_id", user.id)
-    .eq("cache_key", cache_key)
-    .gte("created_at", windowStart.toISOString())
-    .not("output_json", "is", null)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (cached?.output_json) {
-    const { data: profileRow } = await supabase
-      .from("users")
-      .select("credit_balance")
-      .eq("id", user.id)
-      .single();
-    const balance = profileRow?.credit_balance ?? 0;
-    return NextResponse.json(
-      {
-        ok: true,
-        data: {
-          generationId: cached.id,
-          output: cached.output_json,
-          credits: { before: balance, after: balance },
-        },
-        cacheHit: true,
-      },
-      { status: 200 }
-    );
-  }
-
-  const debit = await debitCredits(supabase, {
-    userId: user.id,
-    amount: 1,
-    idempotencyKey: idempotency_key,
-    reason: "generate",
-  });
-
-  if (!debit.ok) {
-    const logPayload = {
-      route: "/api/generate",
-      method: "POST",
-      user_id: user.id,
-      ip,
-      user_agent: request.headers.get("user-agent") ?? null,
-      details: { channel, vibe, input_length: input_value.length, debit_outcome: debit.error },
-    } as const;
-    if (debit.error === "INSUFFICIENT_CREDITS") {
-      try {
-        await writeErrorLog(supabase, {
-          ...logPayload,
-          status: 402,
-          error_code: "INSUFFICIENT_CREDITS",
-          message: "Not enough credits to generate",
-        });
-      } catch {
-        /* best-effort */
-      }
-      return NextResponse.json(
-        {
-          error: {
-            code: "INSUFFICIENT_CREDITS",
-            message: "Not enough credits to generate",
-          },
-        },
-        { status: 402 }
-      );
-    }
-    if (debit.error === "DAILY_LIMIT_EXCEEDED") {
-      try {
-        await writeErrorLog(supabase, {
-          ...logPayload,
-          status: 429,
-          error_code: "DAILY_LIMIT_EXCEEDED",
-          message: "Free plan daily limit (3) reached",
-        });
-      } catch {
-        /* best-effort */
-      }
-      return NextResponse.json(
-        {
-          error: {
-            code: "DAILY_LIMIT_EXCEEDED",
-            message: "Free plan daily limit (3) reached",
-          },
-        },
-        { status: 429 }
-      );
-    }
-    if (debit.error === "IDEMPOTENCY_CONFLICT") {
-      try {
-        await writeErrorLog(supabase, {
-          ...logPayload,
-          status: 409,
-          error_code: "IDEMPOTENCY_CONFLICT",
-          message: "Duplicate request or partial state; retry with a new key",
-        });
-      } catch {
-        /* best-effort */
-      }
-      return NextResponse.json(
-        {
-          error: {
-            code: "IDEMPOTENCY_CONFLICT",
-            message: "Duplicate request or partial state; retry with a new key",
-          },
-        },
-        { status: 409 }
-      );
-    }
-    try {
-      await writeErrorLog(supabase, {
-        ...logPayload,
-        status: 400,
-        error_code: debit.error,
-        message: String(debit.error),
-      });
-    } catch {
-      /* best-effort */
-    }
-    return NextResponse.json(
-      { error: { code: debit.error, message: String(debit.error) } },
-      { status: 400 }
-    );
-  }
-
-  if (debit.duplicated) {
-    const { data: ledgerRow } = await supabase
-      .from("usage_ledger")
-      .select("generation_id")
-      .eq("user_id", user.id)
-      .eq("idempotency_key", idempotency_key)
-      .maybeSingle();
-    const genId = ledgerRow?.generation_id;
-    if (genId) {
-      const { data: gen } = await supabase
-        .from("generations")
-        .select("id, output_json")
-        .eq("id", genId)
-        .maybeSingle();
-      if (gen?.output_json)
-        return NextResponse.json(
-          {
-            ok: true,
-            data: {
-              generationId: gen.id,
-              output: gen.output_json,
-              credits: { before: debit.before, after: debit.after },
-            },
-          },
-          { status: 200 }
-        );
-    }
+  // Input validation: prevent hallucination from vague input
+  const inputValidation = validateProductInput(input_value);
+  if (!inputValidation.valid && inputValidation.error) {
     try {
       await writeErrorLog(supabase, {
         route: "/api/generate",
         method: "POST",
-        status: 409,
-        error_code: "IDEMPOTENCY_CONFLICT",
-        message: "Duplicate key but no generation found; use a new idempotency key",
-        details: { channel, vibe, input_length: input_value.length },
-        user_id: user.id,
+        status: 400,
+        error_code: inputValidation.error.code,
+        message: inputValidation.error.message,
+        details: { input_length: input_value.length },
+        user_id: user?.id ?? null,
         ip,
         user_agent: request.headers.get("user-agent") ?? null,
       });
@@ -442,19 +353,248 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error: {
-          code: "IDEMPOTENCY_CONFLICT",
-          message: "Duplicate key but no generation found; use a new idempotency key",
+          code: inputValidation.error.code,
+          message: inputValidation.error.message,
         },
       },
-      { status: 409 }
+      { status: 400 }
     );
+  }
+
+  const normalizedInput = input_value.trim();
+  const cacheKeyPayload = JSON.stringify({
+    channel,
+    vibe,
+    normalized_input: normalizedInput,
+  });
+  const cache_key =
+    createHash("sha256").update(cacheKeyPayload).digest("hex");
+
+  // For logged-in users: check cache and handle credits
+  let debit: { ok: true; before: number; after: number; duplicated?: boolean } | null = null;
+
+  if (!isGuest) {
+    const windowStart = new Date(Date.now() - CACHE_WINDOW_HOURS * 60 * 60 * 1000);
+    const { data: cached } = await supabase
+      .from("generations")
+      .select("id, output_json")
+      .eq("user_id", user!.id)
+      .eq("cache_key", cache_key)
+      .gte("created_at", windowStart.toISOString())
+      .not("output_json", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (cached?.output_json) {
+      // Validate cached output matches current schema
+      const cachedOutput = responseSchema.safeParse(cached.output_json);
+      if (cachedOutput.success) {
+        const { data: profileRow } = await supabase
+          .from("users")
+          .select("credit_balance")
+          .eq("id", user!.id)
+          .single();
+        const balance = profileRow?.credit_balance ?? 0;
+        return NextResponse.json(
+          {
+            ok: true,
+            data: {
+              generationId: cached.id,
+              output: cachedOutput.data,
+              credits: { before: balance, after: balance },
+            },
+            cacheHit: true,
+          },
+          { status: 200 }
+        );
+      }
+      // Cached output doesn't match schema - skip cache and regenerate
+      console.log("[generate] cached output invalid, regenerating");
+    }
+
+    // DEBUG: 오늘 사용량 확인
+    const { data: todayUsage } = await supabase
+      .from("usage_ledger")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user!.id)
+      .eq("type", "debit")
+      .eq("reason", "generate")
+      .gte("created_at", new Date().toISOString().split("T")[0]);
+    console.log("[generate] DEBUG today usage count:", todayUsage);
+    console.log("[generate] DEBUG user plan:", plan);
+    console.log("[generate] DEBUG user id:", user!.id);
+
+    console.log("[generate] step 5 debiting credits...");
+    const debitResult = await debitCredits(supabase, {
+      userId: user!.id,
+      amount: 1,
+      idempotencyKey: idempotency_key,
+      reason: "generate",
+    });
+    console.log("[generate] step 5 debit result:", JSON.stringify(debitResult));
+
+    if (!debitResult.ok) {
+      const logPayload = {
+        route: "/api/generate",
+        method: "POST",
+        user_id: user!.id,
+        ip,
+        user_agent: request.headers.get("user-agent") ?? null,
+        details: { channel, vibe, input_length: input_value.length, debit_outcome: debitResult.error },
+      } as const;
+      if (debitResult.error === "INSUFFICIENT_CREDITS") {
+        try {
+          await writeErrorLog(supabase, {
+            ...logPayload,
+            status: 402,
+            error_code: "INSUFFICIENT_CREDITS",
+            message: "Not enough credits to generate",
+          });
+        } catch {
+          /* best-effort */
+        }
+        return NextResponse.json(
+          {
+            error: {
+              code: "INSUFFICIENT_CREDITS",
+              message: "Not enough credits to generate",
+            },
+          },
+          { status: 402 }
+        );
+      }
+      if (debitResult.error === "DAILY_LIMIT_EXCEEDED") {
+        try {
+          await writeErrorLog(supabase, {
+            ...logPayload,
+            status: 429,
+            error_code: "DAILY_LIMIT_EXCEEDED",
+            message: "Free plan daily limit (3) reached",
+          });
+        } catch {
+          /* best-effort */
+        }
+        return NextResponse.json(
+          {
+            error: {
+              code: "DAILY_LIMIT_EXCEEDED",
+              message: "Free plan daily limit (3) reached",
+            },
+          },
+          { status: 429 }
+        );
+      }
+      if (debitResult.error === "IDEMPOTENCY_CONFLICT") {
+        try {
+          await writeErrorLog(supabase, {
+            ...logPayload,
+            status: 409,
+            error_code: "IDEMPOTENCY_CONFLICT",
+            message: "Duplicate request or partial state; retry with a new key",
+          });
+        } catch {
+          /* best-effort */
+        }
+        return NextResponse.json(
+          {
+            error: {
+              code: "IDEMPOTENCY_CONFLICT",
+              message: "Duplicate request or partial state; retry with a new key",
+            },
+          },
+          { status: 409 }
+        );
+      }
+      try {
+        await writeErrorLog(supabase, {
+          ...logPayload,
+          status: 400,
+          error_code: debitResult.error,
+          message: String(debitResult.error),
+        });
+      } catch {
+        /* best-effort */
+      }
+      return NextResponse.json(
+        { error: { code: debitResult.error, message: String(debitResult.error) } },
+        { status: 400 }
+      );
+    }
+
+    if (debitResult.duplicated) {
+      const { data: ledgerRow } = await supabase
+        .from("usage_ledger")
+        .select("generation_id")
+        .eq("user_id", user!.id)
+        .eq("idempotency_key", idempotency_key)
+        .maybeSingle();
+      const genId = ledgerRow?.generation_id;
+      if (genId) {
+        const { data: gen } = await supabase
+          .from("generations")
+          .select("id, output_json")
+          .eq("id", genId)
+          .maybeSingle();
+        if (gen?.output_json) {
+          // Validate output matches current schema
+          const validatedOutput = responseSchema.safeParse(gen.output_json);
+          if (validatedOutput.success) {
+            return NextResponse.json(
+              {
+                ok: true,
+                data: {
+                  generationId: gen.id,
+                  output: validatedOutput.data,
+                  credits: { before: debitResult.before, after: debitResult.after },
+                },
+              },
+              { status: 200 }
+            );
+          }
+          // Output doesn't match schema - fall through to conflict error
+          console.log("[generate] idempotent output invalid, returning conflict");
+        }
+      }
+      try {
+        await writeErrorLog(supabase, {
+          route: "/api/generate",
+          method: "POST",
+          status: 409,
+          error_code: "IDEMPOTENCY_CONFLICT",
+          message: "Duplicate key but no generation found; use a new idempotency key",
+          details: { channel, vibe, input_length: input_value.length },
+          user_id: user!.id,
+          ip,
+          user_agent: request.headers.get("user-agent") ?? null,
+        });
+      } catch {
+        /* best-effort */
+      }
+      return NextResponse.json(
+        {
+          error: {
+            code: "IDEMPOTENCY_CONFLICT",
+            message: "Duplicate key but no generation found; use a new idempotency key",
+          },
+        },
+        { status: 409 }
+      );
+    }
+
+    debit = debitResult;
+  } else {
+    console.log("[generate] Guest mode - skipping cache and credit check");
   }
 
   let openai;
   try {
+    console.log("[generate] step 3 getOpenAIClient...");
     openai = getOpenAIClient();
+    console.log("[generate] step 3 getOpenAIClient ok");
   } catch (e) {
     if (e instanceof EnvError) {
+      console.error("[generate] SERVER_MISCONFIGURED at getOpenAIClient:", e.message);
       try {
         await writeErrorLog(supabase, {
           route: "/api/generate",
@@ -463,7 +603,7 @@ export async function POST(request: Request) {
           error_code: "SERVER_MISCONFIGURED",
           message: "서버 설정 오류입니다. 잠시 후 다시 시도해 주세요.",
           details: { channel, vibe, input_length: input_value.length },
-          user_id: user.id,
+          user_id: user?.id ?? null,
           ip,
           user_agent: request.headers.get("user-agent") ?? null,
         });
@@ -489,7 +629,7 @@ export async function POST(request: Request) {
         error_code: "INTERNAL",
         message: msg,
         details: { channel, vibe, input_length: input_value.length },
-        user_id: user.id,
+        user_id: user?.id ?? null,
         ip,
         user_agent: request.headers.get("user-agent") ?? null,
       });
@@ -524,8 +664,11 @@ export async function POST(request: Request) {
   let output: GenerateOutput;
 
   try {
+    console.log("[generate] step 6 calling OpenAI...");
     completion = await runCompletion(messages);
+    console.log("[generate] step 6 OpenAI response received");
     const content = completion.choices[0]?.message?.content?.trim();
+    console.log("[generate] step 6 content length:", content?.length ?? 0);
     let parsed: GenerateOutput | null = content ? parseAndValidate(content) : null;
 
     if (!parsed && content) {
@@ -540,17 +683,23 @@ export async function POST(request: Request) {
     }
 
     if (!parsed) {
+      console.error("[generate] step 6 parsing failed, content:", content?.substring(0, 200));
       throw new Error("Model returned invalid or non-conforming JSON after retry");
     }
     output = parsed;
+    console.log("[generate] step 6 parsing success");
   } catch (e) {
-    const refund = await refundCredits(supabase, {
-      userId: user.id,
-      amount: 1,
-      idempotencyKey: idempotency_key,
-    });
-    if (!refund.ok) {
-      console.error("[generate] refund failed after AI error:", refund.error);
+    console.error("[generate] step 6 error:", e);
+    // Only refund if logged-in user
+    if (!isGuest) {
+      const refund = await refundCredits(supabase, {
+        userId: user!.id,
+        amount: 1,
+        idempotencyKey: idempotency_key,
+      });
+      if (!refund.ok) {
+        console.error("[generate] refund failed after AI error:", refund.error);
+      }
     }
     const msg = e instanceof Error ? e.message : "AI generation failed";
     try {
@@ -561,7 +710,7 @@ export async function POST(request: Request) {
         error_code: "AI_FAILED",
         message: msg,
         details: { channel, vibe, input_length: input_value.length },
-        user_id: user.id,
+        user_id: user?.id ?? null,
         ip,
         user_agent: request.headers.get("user-agent") ?? null,
       });
@@ -577,10 +726,30 @@ export async function POST(request: Request) {
   const latencyMs = Date.now() - start;
   const usage = completion!.usage;
 
+  // For guests: return result without DB save
+  if (isGuest) {
+    console.log("[generate] Guest mode - returning result without DB save");
+    return NextResponse.json(
+      {
+        ok: true,
+        data: {
+          generationId: null,
+          output,
+          credits: { before: 0, after: 0 },
+        },
+        isGuest: true,
+      },
+      { status: 200 }
+    );
+  }
+
+  // For logged-in users: save to DB
+  console.log("[generate] step 7 inserting generation...");
+
   const { data: inserted, error: insertError } = await supabase
     .from("generations")
     .insert({
-      user_id: user.id,
+      user_id: user!.id,
       channel,
       vibe,
       input_type,
@@ -597,8 +766,9 @@ export async function POST(request: Request) {
     .single();
 
   if (insertError || !inserted) {
+    console.error("[generate] step 7 insert failed:", insertError);
     const refund = await refundCredits(supabase, {
-      userId: user.id,
+      userId: user!.id,
       amount: 1,
       idempotencyKey: idempotency_key,
     });
@@ -613,7 +783,7 @@ export async function POST(request: Request) {
         error_code: "AI_FAILED",
         message: "Failed to save generation log",
         details: { channel, vibe, input_length: input_value.length },
-        user_id: user.id,
+        user_id: user!.id,
         ip,
         user_agent: request.headers.get("user-agent") ?? null,
       });
@@ -634,7 +804,7 @@ export async function POST(request: Request) {
   await supabase
     .from("usage_ledger")
     .update({ generation_id: inserted.id })
-    .eq("user_id", user.id)
+    .eq("user_id", user!.id)
     .eq("idempotency_key", idempotency_key);
 
   return NextResponse.json(
@@ -643,7 +813,7 @@ export async function POST(request: Request) {
       data: {
         generationId: inserted.id,
         output,
-        credits: { before: debit.before, after: debit.after },
+        credits: { before: debit!.before, after: debit!.after },
       },
     },
     { status: 200 }

@@ -15,9 +15,10 @@ export default function SignOutButton() {
     <button
       type="button"
       onClick={handleSignOut}
-      className="mt-6 rounded bg-gray-200 px-4 py-2 text-gray-800 font-medium hover:bg-gray-300"
+      className="btn btn-ghost"
+      style={{ marginTop: "1.5rem" }}
     >
-      Sign out
+      로그아웃
     </button>
   );
 }

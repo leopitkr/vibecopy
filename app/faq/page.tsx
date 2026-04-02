@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import "../(marketing)/landing.css";
 
 export const metadata: Metadata = {
   title: "VibeCopy 자주 묻는 질문 (FAQ)",
@@ -46,49 +47,70 @@ const FAQ_ITEMS = [
 
 export default function FAQPage() {
   return (
-    <main className="min-h-screen p-6">
-      <div className="mx-auto max-w-3xl">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl">
-          VibeCopy 자주 묻는 질문 (FAQ)
-        </h1>
-        <p className="mt-2 text-gray-600 dark:text-gray-400">
-          이용 시 궁금한 점을 모았습니다.
-        </p>
+    <div className="landing-page">
+      <div className="landing-gradient" />
 
-        <dl className="mt-10 space-y-6">
-          {FAQ_ITEMS.map((item, i) => (
-            <div
-              key={i}
-              className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800"
-            >
-              <dt className="text-base font-semibold text-gray-900 dark:text-white">
-                {item.q}
-              </dt>
-              <dd className="mt-2 text-sm text-gray-700 dark:text-gray-300">
-                {item.a}
-              </dd>
+      {/* Header */}
+      <header className="header-blur">
+        <div className="header-inner">
+          <Link href="/" className="logo">
+            VibeCopy
+          </Link>
+          <nav>
+            <Link href="/pricing">요금제</Link>
+            <Link href="/guide">가이드</Link>
+            <Link href="/faq">FAQ</Link>
+            <Link href="/login" className="btn btn-ghost">
+              로그인
+            </Link>
+            <Link href="/generate" className="btn btn-primary">
+              시작하기
+            </Link>
+          </nav>
+        </div>
+      </header>
+
+      <main>
+        <section className="content-section">
+          <div className="content-inner">
+            <h1 className="content-title">자주 묻는 질문 (FAQ)</h1>
+            <p className="content-subtitle">이용 시 궁금한 점을 모았습니다.</p>
+
+            <dl className="faq-list">
+              {FAQ_ITEMS.map((item, i) => (
+                <div key={i} className="faq-item">
+                  <dt>{item.q}</dt>
+                  <dd>{item.a}</dd>
+                </div>
+              ))}
+            </dl>
+
+            <div className="cta-box">
+              <h2>무료로 체험해 보세요</h2>
+              <Link href="/generate" className="btn btn-primary">
+                무료로 3회 사용해보기
+              </Link>
             </div>
-          ))}
-        </dl>
 
-        <section className="mt-12 rounded-lg border border-gray-200 bg-gray-50 p-6 dark:border-gray-700 dark:bg-gray-800/50">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            무료로 체험해 보세요
-          </h2>
-          <Link
-            href="/generate"
-            className="mt-4 inline-block rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            무료로 3회 사용해보기
-          </Link>
+            <p className="back-link">
+              <Link href="/">홈으로</Link>
+            </p>
+          </div>
         </section>
+      </main>
 
-        <p className="mt-10 text-center text-sm text-gray-500 dark:text-gray-400">
-          <Link href="/" className="underline focus:ring-2 focus:ring-blue-500">
-            홈으로
-          </Link>
-        </p>
-      </div>
-    </main>
+      {/* Footer */}
+      <footer className="page-footer">
+        <div className="footer-inner">
+          <span>© VibeCopy</span>
+          <nav>
+            <Link href="/pricing">요금제</Link>
+            <Link href="/guide">이용 가이드</Link>
+            <Link href="/faq">FAQ</Link>
+            <Link href="/feedback">피드백</Link>
+          </nav>
+        </div>
+      </footer>
+    </div>
   );
 }

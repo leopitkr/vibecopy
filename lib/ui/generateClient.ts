@@ -20,20 +20,22 @@ export type GenerateRequestBody = {
 };
 
 export type GenerateOutput = {
-  headlines: string[];
+  hook_headlines: string[];
   benefits: string[];
-  shortform_scripts: Array<{ hook: string; script: string }>;
-  ctas: string[];
-  risk_check: { level: string; flags: string[]; notes: string[] };
+  dm_messages: string[];
+  comment_triggers: string[];
+  scarcity_lines: string[];
+  shortform_scripts: Array<{ hook: string; body: string }>;
 };
 
 export type GenerateSuccess = {
   ok: true;
   data: {
-    generationId: string;
+    generationId: string | null;
     output: GenerateOutput;
     credits: { before: number; after: number };
   };
+  isGuest?: boolean;
 };
 
 export type ApiErrorCode =
@@ -66,10 +68,17 @@ export async function generate(
     body: JSON.stringify(body),
   });
   const data = (await res.json().catch(() => ({}))) as
-    | GenerateSuccess
+    | (GenerateSuccess & { isGuest?: boolean })
     | { error?: { code?: string; message?: string } };
   if (res.ok && "data" in data && data.data) {
-    return data as GenerateSuccess;
+    const result: GenerateSuccess = {
+      ok: true,
+      data: data.data,
+    };
+    if ("isGuest" in data && data.isGuest) {
+      result.isGuest = true;
+    }
+    return result;
   }
   const err = "error" in data ? data.error : null;
   const code = (err?.code ?? mapStatusToCode(res.status)) as ApiErrorCode;

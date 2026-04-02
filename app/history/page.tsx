@@ -1,44 +1,59 @@
 import Link from "next/link";
 import { GenerationsList } from "@/components/GenerationsList";
+import "../(marketing)/landing.css";
 
-/*
- * Manual test steps:
- * (H-1) Create 2-3 generations in /generate
- * (H-2) /history shows them in newest-first order
- * (H-3) Open detail shows correct output sections and copy works
- * (H-4) Regenerate creates a NEW generation record and does not double-charge (new idempotency_key)
- * (H-5) /dashboard shows plan + credits and recent generations
- * (H-6) Pagination works (limit 20 + nextCursor)
- */
+export const metadata = {
+  title: "생성 기록 - VibeCopy",
+  description: "내가 만든 카피를 다시 확인하고 재사용하세요",
+};
 
 export default function HistoryPage() {
   return (
-    <main className="min-h-screen p-4 md:p-6">
-      <div className="mx-auto max-w-2xl">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-            생성 기록
-          </h1>
-          <Link
-            href="/generate"
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            새로 생성
+    <div className="landing-page">
+      <div className="landing-gradient" />
+
+      {/* Header */}
+      <header className="header-blur">
+        <div className="header-inner">
+          <Link href="/" className="logo">
+            VibeCopy
           </Link>
+          <nav>
+            <Link href="/generate">카피 생성</Link>
+            <Link href="/history">생성 기록</Link>
+            <Link href="/me">내 정보</Link>
+            <Link href="/generate" className="btn btn-primary">
+              새로 생성
+            </Link>
+          </nav>
         </div>
-        <div className="rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-          <GenerationsList />
+      </header>
+
+      <main>
+        <section className="content-section">
+          <div className="content-inner" style={{ maxWidth: "700px" }}>
+            <h1 className="content-title">생성 기록</h1>
+            <p className="content-subtitle">이전에 생성한 카피를 확인하고 재사용하세요</p>
+
+            <div className="demo-card" style={{ overflow: "hidden" }}>
+              <GenerationsList />
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer className="page-footer">
+        <div className="footer-inner">
+          <span>© VibeCopy</span>
+          <nav>
+            <Link href="/generate">카피 생성</Link>
+            <Link href="/history">생성 기록</Link>
+            <Link href="/me">내 정보</Link>
+            <Link href="/">홈</Link>
+          </nav>
         </div>
-        <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-          <Link href="/dashboard" className="underline focus:ring-2 focus:ring-blue-500">
-            대시보드
-          </Link>
-          {" · "}
-          <Link href="/me" className="underline focus:ring-2 focus:ring-blue-500">
-            내 정보
-          </Link>
-        </p>
-      </div>
-    </main>
+      </footer>
+    </div>
   );
 }

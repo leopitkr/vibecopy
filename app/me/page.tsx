@@ -1,23 +1,54 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import SignOutButton from "./SignOutButton";
+import "../(marketing)/landing.css";
 
 export default async function MePage() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
   if (!user) {
     return (
-      <main className="p-8 max-w-md mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900">RLS test</h1>
-        <p className="mt-2 text-gray-600">Not logged in.</p>
-        <Link href="/login" className="mt-4 inline-block text-blue-600 underline">
-          Log in
-        </Link>
-      </main>
+      <div className="landing-page">
+        <div className="landing-gradient" />
+
+        {/* Header */}
+        <header className="header-blur">
+          <div className="header-inner">
+            <Link href="/" className="logo">
+              VibeCopy
+            </Link>
+            <nav>
+              <Link href="/pricing">요금제</Link>
+              <Link href="/guide">가이드</Link>
+              <Link href="/faq">FAQ</Link>
+              <Link href="/login" className="btn btn-ghost">
+                로그인
+              </Link>
+              <Link href="/generate" className="btn btn-primary">
+                시작하기
+              </Link>
+            </nav>
+          </div>
+        </header>
+
+        <main className="auth-section">
+          <div className="auth-content">
+            <div className="auth-box" style={{ textAlign: "center" }}>
+              <h1 className="auth-title">로그인이 필요합니다</h1>
+              <p className="auth-subtitle">내 정보를 확인하려면 로그인해주세요.</p>
+              <Link href="/login" className="btn btn-primary" style={{ marginTop: "2rem" }}>
+                로그인하기
+              </Link>
+            </div>
+          </div>
+        </main>
+      </div>
     );
   }
+
   let profile: { id: string; email: string | null; plan: string; credit_balance: number } | null = null;
   let error: Error | null = null;
   let result = await supabase
@@ -42,31 +73,137 @@ export default async function MePage() {
 
   if (error || !profile) {
     return (
-      <main className="p-8 max-w-md mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900">RLS test</h1>
-        <p className="mt-2 text-red-600">Error loading profile: {error?.message ?? "Unknown"}</p>
-        <p className="mt-2 text-gray-600 text-sm">
-          Ensure the auth trigger created your public.users row (sign up first).
-        </p>
-        <SignOutButton />
-      </main>
+      <div className="landing-page">
+        <div className="landing-gradient" />
+
+        <header className="header-blur">
+          <div className="header-inner">
+            <Link href="/" className="logo">
+              VibeCopy
+            </Link>
+            <nav>
+              <Link href="/generate">카피 생성</Link>
+              <Link href="/history">생성 기록</Link>
+              <Link href="/me">내 정보</Link>
+            </nav>
+          </div>
+        </header>
+
+        <main className="auth-section">
+          <div className="auth-content">
+            <div className="auth-box" style={{ textAlign: "center" }}>
+              <h1 className="auth-title">오류가 발생했습니다</h1>
+              <p className="auth-subtitle" style={{ color: "var(--red-400)" }}>
+                프로필을 불러오는 중 오류: {error?.message ?? "알 수 없는 오류"}
+              </p>
+              <SignOutButton />
+            </div>
+          </div>
+        </main>
+      </div>
     );
   }
+
+  const PLAN_LABELS: Record<string, string> = {
+    free: "Free",
+    standard: "Standard",
+    pro: "Pro",
+  };
+
   return (
-    <main className="p-8 max-w-md mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900">RLS test</h1>
-      <p className="mt-2 text-green-700 font-medium">Logged in. Your public.users row:</p>
-      <dl className="mt-4 space-y-2 text-gray-700">
-        <dt className="font-medium">id</dt>
-        <dd className="font-mono text-sm break-all">{profile.id}</dd>
-        <dt className="font-medium">email</dt>
-        <dd>{profile.email ?? "—"}</dd>
-        <dt className="font-medium">plan</dt>
-        <dd>{profile.plan}</dd>
-        <dt className="font-medium">credit_balance</dt>
-        <dd>{profile.credit_balance}</dd>
-      </dl>
-      <SignOutButton />
-    </main>
+    <div className="landing-page">
+      <div className="landing-gradient" />
+
+      {/* Header */}
+      <header className="header-blur">
+        <div className="header-inner">
+          <Link href="/" className="logo">
+            VibeCopy
+          </Link>
+          <nav>
+            <Link href="/generate">카피 생성</Link>
+            <Link href="/history">생성 기록</Link>
+            <Link href="/me">내 정보</Link>
+            <Link href="/generate" className="btn btn-primary">
+              새로 생성
+            </Link>
+          </nav>
+        </div>
+      </header>
+
+      <main>
+        <section className="content-section">
+          <div className="content-inner" style={{ maxWidth: "500px" }}>
+            <h1 className="content-title">내 정보</h1>
+            <p className="content-subtitle">계정 정보와 사용량을 확인하세요</p>
+
+            <div className="demo-card">
+              <div style={{ padding: "2rem" }}>
+                <dl style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                  <div>
+                    <dt style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-muted)", marginBottom: "0.25rem" }}>
+                      이메일
+                    </dt>
+                    <dd style={{ fontSize: "1rem", color: "white" }}>
+                      {profile.email ?? "—"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-muted)", marginBottom: "0.25rem" }}>
+                      플랜
+                    </dt>
+                    <dd style={{ fontSize: "1rem", color: "white" }}>
+                      <span style={{
+                        display: "inline-block",
+                        padding: "0.25rem 0.75rem",
+                        background: profile.plan === "pro" ? "linear-gradient(135deg, var(--indigo-500), var(--cyan-400))" : "rgba(99, 102, 241, 0.2)",
+                        borderRadius: "9999px",
+                        fontSize: "0.875rem",
+                        fontWeight: 600,
+                        color: "white",
+                      }}>
+                        {PLAN_LABELS[profile.plan] ?? profile.plan}
+                      </span>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-muted)", marginBottom: "0.25rem" }}>
+                      잔여 크레딧
+                    </dt>
+                    <dd style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--indigo-400)" }}>
+                      {profile.credit_balance}
+                    </dd>
+                  </div>
+                </dl>
+
+                <div style={{ marginTop: "2rem", display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+                  <Link href="/pricing" className="btn btn-primary">
+                    요금제 변경
+                  </Link>
+                  <Link href="/generate" className="btn btn-ghost">
+                    카피 생성하기
+                  </Link>
+                </div>
+
+                <SignOutButton />
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer className="page-footer">
+        <div className="footer-inner">
+          <span>© VibeCopy</span>
+          <nav>
+            <Link href="/generate">카피 생성</Link>
+            <Link href="/history">생성 기록</Link>
+            <Link href="/me">내 정보</Link>
+            <Link href="/">홈</Link>
+          </nav>
+        </div>
+      </footer>
+    </div>
   );
 }
