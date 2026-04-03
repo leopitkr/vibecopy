@@ -868,6 +868,72 @@
   cursor: not-allowed !important;
 }
 
+/* Social Login Buttons */
+.landing-page .social-login-section {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.75rem !important;
+  margin-bottom: 1.5rem !important;
+}
+
+.landing-page .social-login-btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.625rem !important;
+  width: 100% !important;
+  padding: 0.75rem 1rem !important;
+  border-radius: 0.75rem !important;
+  font-size: 0.9375rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: opacity 0.2s !important;
+  border: none !important;
+}
+
+.landing-page .social-login-btn:hover {
+  opacity: 0.9 !important;
+}
+
+.landing-page .social-login-btn:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+.landing-page .social-login-kakao {
+  background: #FEE500 !important;
+  color: #3C1E1E !important;
+}
+
+.landing-page .social-login-google {
+  background: #fff !important;
+  color: #333 !important;
+  border: 1px solid rgba(255,255,255,0.2) !important;
+}
+
+.landing-page .social-login-error {
+  color: #f87171 !important;
+  font-size: 0.8125rem !important;
+  text-align: center !important;
+}
+
+.landing-page .auth-divider {
+  display: flex !important;
+  align-items: center !important;
+  gap: 1rem !important;
+  margin: 1.5rem 0 !important;
+  color: var(--text-muted) !important;
+  font-size: 0.8125rem !important;
+}
+
+.landing-page .auth-divider::before,
+.landing-page .auth-divider::after {
+  content: "" !important;
+  flex: 1 !important;
+  height: 1px !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .landing-page .hero {

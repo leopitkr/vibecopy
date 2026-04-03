@@ -376,7 +376,7 @@ export function GeneratePageClient() {
           ? "입력이 2000자를 초과하면 생성할 수 없습니다."
           : "상품 정보를 입력해주세요."
         : guestLimitReached
-          ? "무료 체험을 모두 사용했습니다. 회원가입하면 매일 3회 무료!"
+          ? "무료 체험을 모두 사용했습니다. 회원가입하면 7일간 프리미엄 체험!"
           : creditsLeft !== null && creditsLeft <= 0
             ? "오늘 사용 가능한 횟수를 모두 사용했습니다."
             : "준비 중..."
@@ -534,9 +534,9 @@ export function GeneratePageClient() {
             <h2 id="guest-limit-modal-title">
               무료 체험을 모두 사용했습니다
             </h2>
-            <p>회원가입하시면 매일 3회 무료로 카피를 생성할 수 있습니다.</p>
+            <p>회원가입하시면 7일간 프리미엄 AI로 매일 3회 무료 체험할 수 있습니다.</p>
             <ul className="generate-modal-list">
-              <li>- 매일 3회 무료 생성</li>
+              <li>- 7일간 프리미엄 AI(gpt-4o) 체험</li>
               <li>- 생성 기록 저장 및 재사용</li>
               <li>- 프리미엄 플랜 업그레이드 가능</li>
             </ul>
@@ -602,10 +602,11 @@ export function GeneratePageClient() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setSourceType("url")}
-                    className={`generate-toggle-btn ${sourceType === "url" ? "active" : ""}`}
+                    disabled
+                    className="generate-toggle-btn"
+                    title="URL 자동 분석 기능을 준비 중입니다"
                   >
-                    URL 입력
+                    URL 입력 <span style={{ fontSize: "0.7em", opacity: 0.6, marginLeft: 4 }}>준비중</span>
                   </button>
                 </div>
               </div>
@@ -767,7 +768,7 @@ export function GeneratePageClient() {
               )}
 
               <div className="generate-result-card">
-                <CopyPackageView output={result} />
+                <CopyPackageView output={result} channel={channel} />
               </div>
 
               {/* Guest signup banner */}
@@ -775,7 +776,7 @@ export function GeneratePageClient() {
                 <div className="generate-guest-banner">
                   <p className="generate-guest-title">결과가 마음에 드셨나요?</p>
                   <p className="generate-guest-desc">
-                    회원가입하면 생성 기록을 저장하고, 매일 3회 무료로 더 만들 수 있습니다.
+                    회원가입하면 7일간 프리미엄 AI 체험 + 생성 기록 저장이 가능합니다.
                   </p>
                   <div className="generate-guest-buttons">
                     <Link href="/signup?returnUrl=/generate" className="btn btn-primary">

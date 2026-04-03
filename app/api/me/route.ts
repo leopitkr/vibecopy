@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   }
   let result = await supabase
     .from("users")
-    .select("id, email, plan, credit_balance")
+    .select("id, email, plan, credit_balance, trial_ends_at")
     .eq("id", user.id)
     .single();
   let profile = result.data;
@@ -59,13 +59,19 @@ export async function GET(request: Request) {
   const plan = profile.plan as PlanType;
   const planConfig = PLAN_LIMITS[plan];
 
+  // Check trial status
+  const isTrial = plan === "free" && profile.trial_ends_at
+    ? new Date(profile.trial_ends_at) > new Date()
+    : false;
+
   let creditBalance = profile.credit_balance;
   let remaining = creditBalance;
   let limit = planConfig.monthlyCredits ?? 0;
 
   // Free plan: show remaining daily uses, not DB credit_balance
   if (plan === "free") {
-    const dailyLimit = PLAN_LIMITS.free.dailyLimit!;
+    // Trial users get 3/day, regular free users get 1/day
+    const dailyLimit = isTrial ? 3 : PLAN_LIMITS.free.dailyLimit!;
     const startOfToday = new Date();
     startOfToday.setUTCHours(0, 0, 0, 0);
     const { count } = await supabase
@@ -102,6 +108,13 @@ export async function GET(request: Request) {
       plan: profile.plan,
       credit_balance: creditBalance,
       plan_info: planInfo,
+      trial: isTrial
+        ? {
+            active: true,
+            ends_at: profile.trial_ends_at,
+            model: "gpt-4o",
+          }
+        : null,
     },
   });
 }

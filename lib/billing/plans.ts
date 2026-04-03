@@ -14,7 +14,7 @@ export function getPlanPriceMap(): Record<"standard" | "pro", string | undefined
 
 export const PLAN_CREDITS: Record<"free" | "standard" | "pro", number> = {
   free: 0,
-  standard: 500,
+  standard: 100,
   pro: 999999,
 };
 

@@ -70,7 +70,7 @@ const STEPS = [
   {
     num: "3",
     title: "복사해서 바로 사용",
-    desc: "32개 카피가 즉시 생성됩니다. 원클릭 복사 후 바로 판매글에 사용하세요",
+    desc: "채널에 맞는 카피가 즉시 생성됩니다. 원클릭 복사 후 바로 판매글에 사용하세요",
   },
 ];
 
@@ -158,12 +158,12 @@ export default function LandingPage() {
             <h1>
               상품 정보 하나로
               <br />
-              <span className="text-gradient">판매글 32개가 한번에 나옵니다</span>
+              <span className="text-gradient">채널에 딱 맞는 판매글이 나옵니다</span>
             </h1>
             <p>
-              헤드라인, 베네핏, DM 멘트, 댓글 유도, 마감 문구, 숏폼 대본까지
+              스마트스토어 상품명, 쿠팡 타이틀, SNS 캡션, 숏폼 스크립트까지
               <br />
-              — 채널별로 톤까지 맞춰서.
+              — 채널별로 필요한 카피만, 톤까지 맞춰서.
             </p>
             <div className="hero-buttons">
               <Link href="/generate" className="btn btn-primary">
@@ -174,7 +174,7 @@ export default function LandingPage() {
               </Link>
             </div>
             <p className="hero-note">
-              회원가입하면 <strong>매일 3회 무료</strong> · 카드 등록 없이 시작
+              가입하면 <strong>7일간 프리미엄 AI 무료 체험</strong> · 카드 등록 없이 시작
             </p>
           </div>
         </section>
@@ -329,7 +329,7 @@ export default function LandingPage() {
 
               {/* Demo Footer */}
               <div className="demo-footer">
-                실제 생성 시 헤드라인 10개, 베네핏 5개, DM 5개, 댓글 5개, 마감 5개, 숏폼 2개 — <span>총 32개</span>가 나옵니다
+                채널에 맞는 카피가 자동으로 구성됩니다. 스마트스토어는 상품명·키워드, SNS는 캡션·DM, 숏폼은 스크립트 중심 — <span>채널별 최적화</span>
               </div>
             </div>
 
@@ -364,7 +364,7 @@ export default function LandingPage() {
         {/* Plan SC4: Pricing hook with link to /pricing */}
         <section className="cta-section">
           <h2 className="cta-title">지금 상품 정보 하나만 넣어보세요</h2>
-          <p className="cta-sub">30초 후에 판매글 32개를 받아보실 수 있습니다.</p>
+          <p className="cta-sub">30초 후에 채널에 딱 맞는 판매글을 받아보실 수 있습니다.</p>
           <Link href="/generate" className="btn btn-primary">
             무료로 시작하기
           </Link>

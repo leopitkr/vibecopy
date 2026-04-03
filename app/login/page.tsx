@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, Suspense } from "react";
 import Link from "next/link";
+import { SocialLoginButtons } from "@/components/SocialLoginButtons";
 import "../(marketing)/landing.css";
 
 function LoginForm() {
@@ -74,7 +75,7 @@ function LoginForm() {
                   <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  매일 3회 무료 카피 생성
+                  매일 무료 카피 생성
                 </li>
                 <li>
                   <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -90,6 +91,9 @@ function LoginForm() {
                 </li>
               </ul>
             </div>
+
+            <SocialLoginButtons returnUrl={returnUrl} mode="login" />
+            <div className="auth-divider">또는</div>
 
             <form onSubmit={handleSubmit} className="auth-form">
               <div className="form-group">

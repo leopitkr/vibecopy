@@ -6,6 +6,7 @@ import { EnvError, safeServerEnvSummary } from "@/lib/env/server";
 import { writeErrorLog } from "@/lib/logging/errorLog";
 import {
   getOpenAIClient,
+  getModelForPlan,
   OPENAI_MAX_OUTPUT_TOKENS,
   OPENAI_MODEL,
 } from "@/lib/openai/client";
@@ -194,16 +195,21 @@ export async function POST(request: Request) {
   const isGuest = !user;
 
   let plan: PlanType = "free";
+  let isTrial = false;
   if (user) {
     const { data: profile } = await supabase
       .from("users")
-      .select("plan")
+      .select("plan, trial_ends_at")
       .eq("id", user.id)
       .single();
     plan =
       profile?.plan === "standard" || profile?.plan === "pro"
         ? profile.plan
         : "free";
+    // Check if user is in trial period (free plan + trial_ends_at in the future)
+    if (plan === "free" && profile?.trial_ends_at) {
+      isTrial = new Date(profile.trial_ends_at) > new Date();
+    }
   }
 
   const forwarded = request.headers.get("x-forwarded-for");
@@ -470,7 +476,7 @@ export async function POST(request: Request) {
             ...logPayload,
             status: 429,
             error_code: "DAILY_LIMIT_EXCEEDED",
-            message: "Free plan daily limit (3) reached",
+            message: "Free plan daily limit reached",
           });
         } catch {
           /* best-effort */
@@ -479,7 +485,7 @@ export async function POST(request: Request) {
           {
             error: {
               code: "DAILY_LIMIT_EXCEEDED",
-              message: "Free plan daily limit (3) reached",
+              message: "Free plan daily limit reached",
             },
           },
           { status: 429 }
@@ -650,11 +656,16 @@ export async function POST(request: Request) {
   );
   const start = Date.now();
 
+  // Trial users get 3 daily uses (instead of free plan's 1)
+  const effectiveDailyLimit = isTrial ? 3 : undefined;
+  const selectedModel = isGuest ? OPENAI_MODEL : getModelForPlan(plan, isTrial);
+  console.log("[generate] selected model:", selectedModel, "plan:", plan, "isTrial:", isTrial);
+
   const runCompletion = async (
     msgs: OpenAI.Chat.ChatCompletionMessageParam[]
   ) =>
     openai.chat.completions.create({
-      model: OPENAI_MODEL,
+      model: selectedModel,
       messages: msgs,
       max_tokens: OPENAI_MAX_OUTPUT_TOKENS,
       response_format: { type: "json_object" },
@@ -756,7 +767,7 @@ export async function POST(request: Request) {
       input_value,
       cache_key,
       output_json: output as unknown as Record<string, unknown>,
-      model: OPENAI_MODEL,
+      model: selectedModel,
       input_tokens: usage?.prompt_tokens ?? null,
       output_tokens: usage?.completion_tokens ?? null,
       total_tokens: usage?.total_tokens ?? null,

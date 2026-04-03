@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { GenerateOutput } from "@/lib/ui/generateClient";
+import type { Channel, GenerateOutput } from "@/lib/ui/generateClient";
 import { CopyPackageView } from "./CopyPackageView";
 import { RegenerateButton } from "./RegenerateButton";
 
@@ -391,7 +391,7 @@ export function GenerationDetailModal({
             )}
 
             {/* Output */}
-            <CopyPackageView output={d.output} />
+            <CopyPackageView output={d.output} channel={d.channel as Channel} />
 
             {/* Regenerate Button */}
             <div style={styles.regenerateSection}>

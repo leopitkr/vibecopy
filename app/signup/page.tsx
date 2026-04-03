@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, Suspense } from "react";
 import Link from "next/link";
+import { SocialLoginButtons } from "@/components/SocialLoginButtons";
 import "../(marketing)/landing.css";
 
 function SignupForm() {
@@ -74,7 +75,7 @@ function SignupForm() {
                   <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: "var(--emerald-400)" }}>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  매일 3회 무료 카피 생성
+                  가입 후 7일간 프리미엄 AI 체험
                 </li>
                 <li>
                   <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: "var(--emerald-400)" }}>
@@ -90,6 +91,9 @@ function SignupForm() {
                 </li>
               </ul>
             </div>
+
+            <SocialLoginButtons returnUrl={returnUrl} mode="signup" />
+            <div className="auth-divider">또는 이메일로 가입</div>
 
             <form onSubmit={handleSubmit} className="auth-form">
               <div className="form-group">

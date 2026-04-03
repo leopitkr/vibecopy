@@ -75,7 +75,7 @@ export default function PricingPage() {
               <div className="pricing-card">
                 <h2 className="pricing-tier">Free</h2>
                 <p className="pricing-price">0원</p>
-                <p className="pricing-period">하루 3회 생성</p>
+                <p className="pricing-period">하루 1회 생성</p>
                 <ul className="pricing-features">
                   <li>
                     <span className="check-icon">✓</span>
@@ -83,15 +83,19 @@ export default function PricingPage() {
                   </li>
                   <li>
                     <span className="check-icon">✓</span>
-                    기본 바이브 사용
+                    기본 AI (gpt-4o-mini)
                   </li>
                   <li>
                     <span className="check-icon">✓</span>
                     생성 기록 저장
                   </li>
+                  <li>
+                    <span className="check-icon">✓</span>
+                    가입 후 7일간 프리미엄 체험
+                  </li>
                 </ul>
                 <Link href="/generate" className="btn btn-ghost" style={{ width: "100%", marginTop: "auto" }}>
-                  시작하기
+                  무료로 시작하기
                 </Link>
               </div>
 
@@ -102,15 +106,15 @@ export default function PricingPage() {
                 <p className="pricing-price">
                   19,000원<span className="pricing-unit">/월</span>
                 </p>
-                <p className="pricing-period">월 500회 생성</p>
+                <p className="pricing-period">월 100회 생성</p>
                 <ul className="pricing-features">
                   <li>
                     <span className="check-icon check-icon-featured">✓</span>
-                    전체 채널 지원
+                    프리미엄 AI (gpt-4o)
                   </li>
                   <li>
                     <span className="check-icon check-icon-featured">✓</span>
-                    전체 바이브 사용
+                    전체 채널 + 바이브
                   </li>
                   <li>
                     <span className="check-icon check-icon-featured">✓</span>
@@ -138,19 +142,19 @@ export default function PricingPage() {
                 <ul className="pricing-features">
                   <li>
                     <span className="check-icon">✓</span>
+                    프리미엄 AI (gpt-4o)
+                  </li>
+                  <li>
+                    <span className="check-icon">✓</span>
                     Standard 모든 기능
                   </li>
                   <li>
                     <span className="check-icon">✓</span>
-                    브랜드 보이스 저장
+                    브랜드 보이스 저장 <span style={{ fontSize: "0.7em", opacity: 0.6 }}>준비중</span>
                   </li>
                   <li>
                     <span className="check-icon">✓</span>
-                    CSV 다운로드
-                  </li>
-                  <li>
-                    <span className="check-icon">✓</span>
-                    A/B 카피 변형
+                    CSV 다운로드 <span style={{ fontSize: "0.7em", opacity: 0.6 }}>준비중</span>
                   </li>
                 </ul>
                 <button

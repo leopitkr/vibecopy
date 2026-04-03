@@ -283,9 +283,149 @@ function getChannelContext(channel: string): string {
 ${rulesText}`;
 }
 
+// Channel-specific output instructions
+const CHANNEL_OUTPUT_INSTRUCTIONS: Record<string, string> = {
+  smartstore: `[요구사항 — 스마트스토어 전용]
+
+1. hook_headlines 10개: 상품명/헤드라인 후보
+- 네이버 검색에 최적화된 50~80자 상품명
+- 핵심 키워드를 자연스럽게 포함
+- 클릭 유도 + 검색 노출 둘 다 고려
+
+2. benefits 5개: 상세페이지 핵심 문구
+- 상세페이지에 바로 넣을 수 있는 셀링포인트
+- 반드시 상황 + 변화 포함
+
+3. dm_messages 5개: 구매 유도 문구
+- 장바구니 담기/구매를 유도하는 문구
+- 상세페이지 하단에 넣을 수 있는 톤
+
+4. comment_triggers 5개: 리뷰 유도 문구
+- 구매 후 리뷰 작성을 유도하는 문구
+- "써보신 분 후기 부탁드려요" 스타일
+
+5. scarcity_lines 5개: 검색 키워드 제안
+- 이 상품과 관련된 네이버 검색 키워드
+- 실제 소비자가 검색할 만한 키워드 조합
+- 키워드만 작성 (문장 아님)
+
+6. shortform_scripts 2개: (비워도 됨, 최소한의 내용만)
+- hook: "스마트스토어용" (짧게)
+- body: "상세페이지 참조" (짧게)`,
+
+  coupang: `[요구사항 — 쿠팡 전용]
+
+1. hook_headlines 10개: 상품 타이틀 후보
+- "브랜드명 + 제품명 + 용량/수량 + 핵심특징" 형식
+- 쿠팡 상품명 규칙에 맞게 키워드 나열형
+- 최대 100자, 핵심 스펙 포함
+
+2. benefits 5개: 핵심 불릿포인트
+- 쿠팡 상품 상세 5줄 요약에 들어갈 내용
+- 한 줄당 15단어 이하, 핵심만
+
+3. dm_messages 5개: 구매 이유
+- "이 상품을 사야 하는 이유" 5가지
+- 구매 결정에 직접 영향주는 내용만
+
+4. comment_triggers 5개: 상세설명 문구
+- 상세페이지 중간에 넣을 수 있는 설명 문구
+- 스펙 중심이 아니라 사용 경험 중심
+
+5. scarcity_lines 5개: 검색 키워드 제안
+- 쿠팡에서 소비자가 검색할 키워드 조합
+- 키워드만 작성 (문장 아님)
+
+6. shortform_scripts 2개: (비워도 됨, 최소한의 내용만)
+- hook: "쿠팡용" (짧게)
+- body: "상세페이지 참조" (짧게)`,
+
+  social: `[요구사항 — SNS(인스타그램) 전용]
+
+1. hook_headlines 10개: 피드 캡션
+- 인스타 피드에 바로 쓸 수 있는 캡션
+- 이모지 1~2개 자연스럽게 포함
+- 스크롤 멈추게 하는 첫 줄
+
+2. benefits 5개: 스토리 문구
+- 인스타 스토리에 넣을 짧은 문구
+- 한 줄당 12단어 이하
+- 이모지 1개 포함
+
+3. dm_messages 5개: DM 유도 멘트
+- 실제 공구/판매 DM처럼
+- 자연스럽게 구매 유도
+
+4. comment_triggers 5개: 댓글 유도 문구
+- 참여를 유도하는 질문형
+- "써보신 분?", "어떤 거 좋아하세요?" 스타일
+
+5. scarcity_lines 5개: 마감/희소성 문구
+- 긴급성 포함, 이모지 포함
+- "오늘 마감", "선착순" 느낌
+
+6. shortform_scripts 2개:
+- hook: 10단어 이하, 릴스 첫 3초
+- body: 15~30초 분량 자연스러운 대화체`,
+
+  shortform: `[요구사항 — 숏폼(틱톡/릴스/숏츠) 전용]
+
+1. hook_headlines 10개: 후킹 라인 (첫 3초)
+- 영상 시작 3초 안에 시선 잡는 문장
+- 10단어 이하
+- 호기심/충격/공감 유발
+
+2. benefits 5개: 영상 본문 포인트
+- 후킹 후 이어질 핵심 메시지
+- 영상에서 말하는 것처럼 구어체로
+
+3. dm_messages 5개: CTA 문구
+- 영상 마지막에 넣을 행동 유도 문구
+- "링크 타고 가세요", "프로필에서 확인" 스타일
+
+4. comment_triggers 5개: 댓글 유도 문구
+- 영상 끝에 댓글 참여 유도
+- "써본 사람?" "어떤 게 나아요?" 스타일
+
+5. scarcity_lines 5개: (비워도 됨, 최소한의 내용만)
+- "긴급" (짧게)
+
+6. shortform_scripts 2개: 풀 스크립트 (가장 중요!)
+- hook: 10단어 이하, 영상 첫 줄
+- body: 15~30초 분량의 완전한 영상 스크립트. 말하는 것처럼 자연스럽게, 최소 5문장 이상. 시작-전개-CTA 구조로 작성`,
+
+  affiliate: `[요구사항 — 제휴/블로그 전용]
+
+1. hook_headlines 10개: 블로그 제목
+- 클릭 유도하는 블로그/카페 게시글 제목
+- 검색 키워드 자연스럽게 포함
+- "~해봤습니다", "~추천", "~비교" 패턴
+
+2. benefits 5개: 본문 도입부
+- 블로그 글 첫 문단에 쓸 수 있는 도입부
+- 자연스러운 경험담 시작
+
+3. dm_messages 5개: 추천 문구
+- 본문 중간에 넣을 추천 멘트
+- 광고 티 안 나게, 자연스러운 추천
+
+4. comment_triggers 5개: 마무리 CTA
+- 블로그 글 마지막에 넣을 행동 유도
+- "링크 남겨둘게요", "궁금한 점은 댓글로" 스타일
+
+5. scarcity_lines 5개: 마감/희소성 문구
+- 제한된 혜택, 기간 한정 느낌
+- 블로그 독자 대상 톤
+
+6. shortform_scripts 2개: (비워도 됨, 최소한의 내용만)
+- hook: "블로그용" (짧게)
+- body: "본문 참조" (짧게)`,
+};
+
 function buildUserPrompt(inputValue: string, channel: string, vibe: string): string {
   const vibeContext = getVibeContext(vibe);
   const channelContext = getChannelContext(channel);
+  const outputInstructions = CHANNEL_OUTPUT_INSTRUCTIONS[channel] ?? CHANNEL_OUTPUT_INSTRUCTIONS.smartstore;
 
   return `다음 상품 정보를 기반으로 "실제 판매글처럼 바로 쓸 수 있는 카피"를 만들어라.
 
@@ -300,32 +440,7 @@ ${vibeContext}
 
 ---
 
-[요구사항]
-
-1. 후킹 헤드라인 10개
-- 반드시 클릭 유도
-- 경험 기반 문장
-- 최대 15단어
-
-2. 핵심 베네핏 5개
-- 기능 설명 금지
-- 반드시 상황 + 변화 포함
-
-3. DM 유도 멘트 5개
-- 실제 공구 상황처럼
-- 자연스럽게 구매 유도
-
-4. 댓글 유도 멘트 5개
-- 참여 유도
-- 실제 후기 느낌
-
-5. 마감/희소성 문구 5개
-- 긴급성 포함
-- 현실적인 톤
-
-6. 숏폼 스크립트 2개
-- hook: 10단어 이하
-- body: 짧고 구어체
+${outputInstructions}
 
 ---
 
@@ -334,6 +449,7 @@ ${vibeContext}
 - 모든 문장은 반드시 구체적이어야 한다
 - 실제 사람이 쓴 것처럼 자연스러워야 한다
 - 광고처럼 보이면 실패
+- "비워도 됨"이라고 표시된 항목도 반드시 JSON 키와 빈 문자열 배열을 포함해야 한다
 
 ---
 
