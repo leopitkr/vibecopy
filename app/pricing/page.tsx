@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { AuthHeader } from "@/components/AuthHeader";
 import "../(marketing)/landing.css";
 
 type PlanId = "standard" | "pro";
@@ -39,25 +40,7 @@ export default function PricingPage() {
     <div className="landing-page">
       <div className="landing-gradient" />
 
-      {/* Header */}
-      <header className="header-blur">
-        <div className="header-inner">
-          <Link href="/" className="logo">
-            VibeCopy
-          </Link>
-          <nav>
-            <Link href="/pricing">요금제</Link>
-            <Link href="/guide">가이드</Link>
-            <Link href="/faq">FAQ</Link>
-            <Link href="/login" className="btn btn-ghost">
-              로그인
-            </Link>
-            <Link href="/generate" className="btn btn-primary">
-              시작하기
-            </Link>
-          </nav>
-        </div>
-      </header>
+      <AuthHeader />
 
       <main>
         <section className="hero" style={{ paddingBottom: "4rem" }}>

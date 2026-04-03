@@ -151,6 +151,7 @@ export function GeneratePageClient() {
   const { toasts, removeToast, showSuccess } = useToast();
   const [creditsLeft, setCreditsLeft] = useState<number | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userNickname, setUserNickname] = useState<string | null>(null);
   const [userPlan, setUserPlan] = useState<PlanType | null>(null);
   const [planInfo, setPlanInfo] = useState<PlanInfo | null>(null);
   const [meLoading, setMeLoading] = useState(true);
@@ -206,17 +207,20 @@ export function GeneratePageClient() {
       if (data?.data?.credit_balance !== undefined) {
         setCreditsLeft(data.data.credit_balance);
         setUserEmail(data.data.email ?? null);
+        setUserNickname(data.data.nickname ?? null);
         setUserPlan((data.data.plan as PlanType) ?? "free");
         setPlanInfo(data.data.plan_info ?? null);
       } else {
         setCreditsLeft(null);
         setUserEmail(null);
+        setUserNickname(null);
         setUserPlan(null);
         setPlanInfo(null);
       }
     } catch {
       setCreditsLeft(null);
       setUserEmail(null);
+      setUserNickname(null);
       setUserPlan(null);
       setPlanInfo(null);
     } finally {
@@ -424,9 +428,21 @@ export function GeneratePageClient() {
                   creditsLeft={creditsLeft}
                   loading={meLoading}
                 />
-                <span className="hidden text-sm text-[var(--text-secondary)] sm:inline">
-                  {userEmail}
-                </span>
+                <Link
+                  href="/me"
+                  style={{
+                    color: "var(--text-secondary)",
+                    fontSize: "0.85rem",
+                    textDecoration: "none",
+                    maxWidth: 120,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                  title={userEmail ?? undefined}
+                >
+                  {userNickname || userEmail?.split("@")[0] || "내 정보"}
+                </Link>
                 <button
                   type="button"
                   onClick={handleLogout}

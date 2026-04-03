@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AuthHeader } from "@/components/AuthHeader";
 import "../(marketing)/landing.css";
 
 export default function GuidePage() {
@@ -6,25 +7,7 @@ export default function GuidePage() {
     <div className="landing-page">
       <div className="landing-gradient" />
 
-      {/* Header */}
-      <header className="header-blur">
-        <div className="header-inner">
-          <Link href="/" className="logo">
-            VibeCopy
-          </Link>
-          <nav>
-            <Link href="/pricing">요금제</Link>
-            <Link href="/guide">가이드</Link>
-            <Link href="/faq">FAQ</Link>
-            <Link href="/login" className="btn btn-ghost">
-              로그인
-            </Link>
-            <Link href="/generate" className="btn btn-primary">
-              시작하기
-            </Link>
-          </nav>
-        </div>
-      </header>
+      <AuthHeader />
 
       <main>
         <section className="content-section">

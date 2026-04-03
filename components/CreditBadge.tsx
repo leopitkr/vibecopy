@@ -58,23 +58,19 @@ export function CreditBadge({
   const isEmpty = remaining <= 0;
   const badgeText = getBadgeText(plan, planInfo, creditsLeft);
 
+  const showUpgrade = (isEmpty || isLow) && plan === "free";
+
   return (
     <div className="credit-badge-wrapper">
       <span
         className={`credit-badge ${isEmpty ? "empty" : isLow ? "low" : ""}`}
-        aria-describedby={isLow ? "credit-warning" : undefined}
       >
         {badgeText}
       </span>
-      {isEmpty && plan === "free" && (
-        <span id="credit-warning" className="credit-badge-warning empty">
-          <Link href="/pricing">업그레이드</Link>
-        </span>
-      )}
-      {isLow && !isEmpty && (
-        <span id="credit-warning" className="credit-badge-warning low">
-          <Link href="/pricing">업그레이드</Link>
-        </span>
+      {showUpgrade && (
+        <Link href="/pricing" className={`credit-upgrade-btn ${isEmpty ? "empty" : "low"}`}>
+          업그레이드
+        </Link>
       )}
     </div>
   );

@@ -3,22 +3,37 @@ import { writeErrorLog } from "@/lib/logging/errorLog";
 import { NextResponse } from "next/server";
 import { PLAN_LIMITS, type PlanType, type PlanLimitType } from "@/lib/constants/limits";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: Request) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json(
+    const unauth = NextResponse.json(
       { error: { code: "UNAUTHORIZED", message: "Not logged in" } },
       { status: 401 }
     );
+    unauth.headers.set("Cache-Control", "no-store, max-age=0");
+    return unauth;
   }
+  // Try full select first; if onboarding columns don't exist yet, fall back to basic select
   let result = await supabase
     .from("users")
-    .select("id, email, plan, credit_balance, trial_ends_at")
+    .select("id, email, nickname, plan, credit_balance, trial_ends_at, onboarding_completed")
     .eq("id", user.id)
     .single();
+
+  // Column doesn't exist (42703) — fall back without onboarding fields
+  if (result.error?.code === "42703") {
+    result = await supabase
+      .from("users")
+      .select("id, email, plan, credit_balance, trial_ends_at")
+      .eq("id", user.id)
+      .single();
+  }
+
   let profile = result.data;
   let error = result.error;
 
@@ -27,7 +42,7 @@ export async function GET(request: Request) {
     await supabase.from("users").insert({ id: user.id, email: user.email ?? undefined }).select().single();
     result = await supabase
       .from("users")
-      .select("id, email, plan, credit_balance")
+      .select("id, email, plan, credit_balance, trial_ends_at")
       .eq("id", user.id)
       .single();
     profile = result.data;
@@ -100,14 +115,16 @@ export async function GET(request: Request) {
     remaining,
   };
 
-  return NextResponse.json({
+  const res = NextResponse.json({
     ok: true,
     data: {
       id: profile.id,
       email: profile.email,
+      nickname: profile.nickname ?? null,
       plan: profile.plan,
       credit_balance: creditBalance,
       plan_info: planInfo,
+      onboarding_completed: profile.onboarding_completed ?? false,
       trial: isTrial
         ? {
             active: true,
@@ -117,4 +134,6 @@ export async function GET(request: Request) {
         : null,
     },
   });
+  res.headers.set("Cache-Control", "no-store, max-age=0");
+  return res;
 }
