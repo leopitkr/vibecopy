@@ -114,40 +114,6 @@ function OnboardingForm() {
     }
   }
 
-  async function handleSkip() {
-    if (!termsAgreed) {
-      setError("서비스를 이용하려면 필수 약관에 동의해주세요.");
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      // Generate a default nickname from email (skip nickname only)
-      const defaultNick = userEmail
-        ? userEmail.split("@")[0].replace(/[^a-zA-Z0-9가-힣_]/g, "_").slice(0, 20)
-        : `user_${Date.now().toString(36)}`;
-      // Ensure generated nickname meets minimum length
-      const safeName = defaultNick.length >= 2 ? defaultNick : `user_${Date.now().toString(36)}`;
-
-      const res = await fetch("/api/onboarding", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ nickname: safeName, terms_agreed: true }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.error?.message || "오류가 발생했습니다");
-        setLoading(false);
-        return;
-      }
-      localStorage.removeItem("vibecopy_terms_agreed");
-      router.push(returnUrl);
-    } catch {
-      setError("네트워크 오류가 발생했습니다. 다시 시도해주세요.");
-      setLoading(false);
-    }
-  }
 
   return (
     <div className="landing-page">
@@ -391,31 +357,6 @@ function OnboardingForm() {
             </button>
           </form>
 
-          <button
-            type="button"
-            onClick={handleSkip}
-            disabled={loading}
-            style={{
-              display: "block",
-              width: "100%",
-              textAlign: "center",
-              marginTop: "1.5rem",
-              color: termsAgreed ? "var(--text-muted)" : "var(--text-muted)",
-              fontSize: "0.85rem",
-              background: "none",
-              border: "none",
-              cursor: loading ? "not-allowed" : "pointer",
-              fontFamily: "inherit",
-              opacity: loading ? 0.5 : 1,
-            }}
-          >
-            닉네임 나중에 설정하기
-          </button>
-          {!termsAgreed && (
-            <p style={{ textAlign: "center", fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.5rem" }}>
-              약관 동의 후 닉네임 설정을 건너뛸 수 있습니다
-            </p>
-          )}
         </div>
       </main>
     </div>
