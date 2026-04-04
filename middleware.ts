@@ -7,6 +7,15 @@ const PROTECTED_ROUTES = ["/generate", "/history", "/me", "/dashboard"];
 const ONBOARDING_ALLOWED = ["/onboarding", "/welcome", "/auth", "/api", "/login", "/signup", "/pricing", "/guide", "/faq", "/terms", "/feedback"];
 
 export async function middleware(request: NextRequest) {
+  // If OAuth code arrives at root, redirect to /auth/callback to complete the exchange
+  const pathname = request.nextUrl.pathname;
+  const code = request.nextUrl.searchParams.get("code");
+  if (pathname === "/" && code) {
+    const callbackUrl = new URL("/auth/callback", request.url);
+    callbackUrl.searchParams.set("code", code);
+    return NextResponse.redirect(callbackUrl);
+  }
+
   const response = NextResponse.next({ request });
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
