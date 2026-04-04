@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import { GeneratePageClient } from "@/components/GeneratePageClient";
 
 /*
@@ -7,8 +9,18 @@ import { GeneratePageClient } from "@/components/GeneratePageClient";
  * (UI-3) Network / AI failure -> shows error and retry button; retry reuses idempotencyKey and does not double-charge
  * (UI-4) Copy buttons copy correct text (unit test or manual)
  * (UI-5) Loading state appears and prevents duplicate submits
+ * (UI-6) Unauthenticated user visiting /generate -> redirected to /login
  */
 
-export default function GeneratePage() {
+export default async function GeneratePage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login?returnUrl=/generate");
+  }
+
   return <GeneratePageClient />;
 }

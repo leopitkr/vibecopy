@@ -149,15 +149,15 @@ export default function LandingPage() {
               — 채널별로 필요한 카피만, 톤까지 맞춰서.
             </p>
             <div className="hero-buttons">
-              <Link href="/generate" className="btn btn-primary">
-                무료로 카피 만들어보기
+              <Link href="/login?returnUrl=/generate" className="btn btn-primary">
+                7일 무료 체험 시작하기
               </Link>
               <Link href="#demo" className="btn btn-ghost">
-                결과물 미리보기
+                결과물 ��리보기
               </Link>
             </div>
             <p className="hero-note">
-              가입하면 <strong>7일간 프리미엄 AI 무료 체험</strong> · 카드 등록 없이 시작
+              가입 즉시 <strong>7일간 하루 3회 프리미엄 AI 무료</strong> · 카드 등록 없이 시작
             </p>
           </div>
         </section>
@@ -318,8 +318,8 @@ export default function LandingPage() {
 
             {/* Mid CTA */}
             <div className="demo-mid-cta">
-              <Link href="/generate" className="btn btn-primary">
-                내 상품으로 직접 만들어보기 →
+              <Link href="/login?returnUrl=/generate" className="btn btn-primary">
+                회원가입하고 내 상품으로 만들어보��� →
               </Link>
             </div>
           </div>
@@ -347,9 +347,9 @@ export default function LandingPage() {
         {/* Plan SC4: Pricing hook with link to /pricing */}
         <section className="cta-section">
           <h2 className="cta-title">지금 상품 정보 하나만 넣어보세요</h2>
-          <p className="cta-sub">30초 후에 채널에 딱 맞는 판매글을 받아보실 수 있습니다.</p>
-          <Link href="/generate" className="btn btn-primary">
-            무료로 시작하기
+          <p className="cta-sub">가입하면 7일간 하루 3회, 프리미엄 AI로 무료 체험할 수 있습니다.</p>
+          <Link href="/login?returnUrl=/generate" className="btn btn-primary">
+            7일 무료 체험 시작하기
           </Link>
           <br />
           <Link href="/pricing" className="cta-link">

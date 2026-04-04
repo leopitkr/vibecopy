@@ -15,7 +15,7 @@ export const OPENAI_MAX_OUTPUT_TOKENS = MAX_OUTPUT_TOKENS;
 
 /**
  * Returns the AI model to use based on the user's plan.
- * Free/guest → gpt-4o-mini, Standard/Pro (or trial) → gpt-4o
+ * Free → gpt-4o-mini, Standard/Pro (or trial) → gpt-4o
  */
 export function getModelForPlan(plan: string, isTrial?: boolean): string {
   if (isTrial) return OPENAI_MODEL_PREMIUM;

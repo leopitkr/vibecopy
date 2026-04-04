@@ -31,11 +31,10 @@ export type GenerateOutput = {
 export type GenerateSuccess = {
   ok: true;
   data: {
-    generationId: string | null;
+    generationId: string;
     output: GenerateOutput;
     credits: { before: number; after: number };
   };
-  isGuest?: boolean;
 };
 
 export type ApiErrorCode =
@@ -68,17 +67,10 @@ export async function generate(
     body: JSON.stringify(body),
   });
   const data = (await res.json().catch(() => ({}))) as
-    | (GenerateSuccess & { isGuest?: boolean })
+    | GenerateSuccess
     | { error?: { code?: string; message?: string } };
   if (res.ok && "data" in data && data.data) {
-    const result: GenerateSuccess = {
-      ok: true,
-      data: data.data,
-    };
-    if ("isGuest" in data && data.isGuest) {
-      result.isGuest = true;
-    }
-    return result;
+    return { ok: true as const, data: data.data };
   }
   const err = "error" in data ? data.error : null;
   const code = (err?.code ?? mapStatusToCode(res.status)) as ApiErrorCode;

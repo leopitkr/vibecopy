@@ -8,6 +8,7 @@ const onboardingSchema = z.object({
     .min(2, "닉네임은 2자 이상이어야 합니다")
     .max(20, "닉네임은 20자 이하여야 합니다")
     .regex(/^[a-zA-Z0-9가-힣_]+$/, "한글, 영문, 숫자, 밑줄만 사용할 수 있습니다"),
+  terms_agreed: z.literal(true, { message: "필수 약관에 동의해야 합니다" }),
 });
 
 export async function POST(request: Request) {
@@ -67,6 +68,7 @@ export async function POST(request: Request) {
         id: user.id,
         email: user.email ?? "",
         nickname,
+        terms_agreed_at: new Date().toISOString(),
         onboarding_completed: true,
       },
       { onConflict: "id" }

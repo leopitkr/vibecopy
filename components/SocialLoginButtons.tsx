@@ -5,19 +5,23 @@ import { createClient } from "@/lib/supabase/client";
 
 type SocialLoginButtonsProps = {
   returnUrl?: string;
-  mode?: "login" | "signup";
+  disabled?: boolean;
+  onBeforeOAuth?: () => void;
 };
 
 export function SocialLoginButtons({
   returnUrl = "/generate",
-  mode = "login",
+  disabled = false,
+  onBeforeOAuth,
 }: SocialLoginButtonsProps) {
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function handleOAuth(provider: "kakao" | "google") {
+    if (disabled) return;
     setError(null);
     setLoading(provider);
+    onBeforeOAuth?.();
     try {
       const supabase = createClient();
       const { error: err } = await supabase.auth.signInWithOAuth({
@@ -36,15 +40,14 @@ export function SocialLoginButtons({
     }
   }
 
-  const label = mode === "signup" ? "가입" : "로그인";
-
   return (
     <div className="social-login-section">
       <button
         type="button"
         onClick={() => handleOAuth("kakao")}
-        disabled={!!loading}
+        disabled={disabled || !!loading}
         className="social-login-btn social-login-kakao"
+        style={disabled ? { opacity: 0.4, cursor: "not-allowed" } : undefined}
       >
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
           <path
@@ -52,14 +55,15 @@ export function SocialLoginButtons({
             fill="#3C1E1E"
           />
         </svg>
-        {loading === "kakao" ? "연결 중…" : `카카오로 ${label}`}
+        {loading === "kakao" ? "연결 중…" : "카카오로 계속하기"}
       </button>
 
       <button
         type="button"
         onClick={() => handleOAuth("google")}
-        disabled={!!loading}
+        disabled={disabled || !!loading}
         className="social-login-btn social-login-google"
+        style={disabled ? { opacity: 0.4, cursor: "not-allowed" } : undefined}
       >
         <svg width="18" height="18" viewBox="0 0 18 18">
           <path d="M17.64 9.2c0-.63-.06-1.25-.16-1.84H9v3.49h4.84a4.14 4.14 0 01-1.8 2.71v2.26h2.92a8.78 8.78 0 002.68-6.62z" fill="#4285F4"/>
@@ -67,7 +71,7 @@ export function SocialLoginButtons({
           <path d="M3.96 10.71A5.41 5.41 0 013.68 9c0-.6.1-1.17.28-1.71V4.96H.96A9 9 0 000 9c0 1.45.35 2.83.96 4.04l3-2.33z" fill="#FBBC05"/>
           <path d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.59C13.46.89 11.43 0 9 0A9 9 0 00.96 4.96l3 2.33C4.67 5.16 6.66 3.58 9 3.58z" fill="#EA4335"/>
         </svg>
-        {loading === "google" ? "연결 중…" : `Google로 ${label}`}
+        {loading === "google" ? "연결 중…" : "Google로 계속하기"}
       </button>
 
       {error && (

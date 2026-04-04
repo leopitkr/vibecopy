@@ -11,9 +11,15 @@ function OnboardingForm() {
   const returnUrl = searchParams.get("returnUrl") || "/generate";
 
   const [nickname, setNickname] = useState("");
-  const [termsAll, setTermsAll] = useState(false);
-  const [termsService, setTermsService] = useState(false);
-  const [termsPrivacy, setTermsPrivacy] = useState(false);
+  // Check if terms were already agreed on the login page
+  const [termsPreAgreed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const stored = localStorage.getItem("vibecopy_terms_agreed");
+    return !!stored;
+  });
+  const [termsAll, setTermsAll] = useState(termsPreAgreed);
+  const [termsService, setTermsService] = useState(termsPreAgreed);
+  const [termsPrivacy, setTermsPrivacy] = useState(termsPreAgreed);
   const [error, setError] = useState<string | null>(null);
   const [nicknameStatus, setNicknameStatus] = useState<"idle" | "valid" | "error">("idle");
   const [nicknameMessage, setNicknameMessage] = useState("한글, 영문, 숫자, 밑줄(_) 사용 가능 · 2~20자");
@@ -25,12 +31,23 @@ function OnboardingForm() {
       .then((res) => res.json())
       .then((data) => {
         if (data?.data?.email) setUserEmail(data.data.email);
+        // Pre-fill nickname from social login profile
+        if (data?.data?.social_nickname && !nickname) {
+          const cleaned = data.data.social_nickname
+            .replace(/[^a-zA-Z0-9가-힣_\s]/g, "")
+            .replace(/\s+/g, "_")
+            .slice(0, 20);
+          if (cleaned.length >= 2) {
+            validateNickname(cleaned);
+          }
+        }
         // Already onboarded? Redirect.
         if (data?.data?.onboarding_completed) {
           router.replace(returnUrl);
         }
       })
       .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router, returnUrl]);
 
   function validateNickname(value: string) {
@@ -67,7 +84,8 @@ function OnboardingForm() {
     setTermsAll(service && privacy);
   }
 
-  const canSubmit = nicknameStatus === "valid" && termsService && termsPrivacy && !loading;
+  const termsAgreed = termsService && termsPrivacy;
+  const canSubmit = nicknameStatus === "valid" && termsAgreed && !loading;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -80,7 +98,7 @@ function OnboardingForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ nickname: nickname.trim() }),
+        body: JSON.stringify({ nickname: nickname.trim(), terms_agreed: true }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -88,6 +106,7 @@ function OnboardingForm() {
         setLoading(false);
         return;
       }
+      localStorage.removeItem("vibecopy_terms_agreed");
       router.push(`/welcome?nickname=${encodeURIComponent(nickname.trim())}&returnUrl=${encodeURIComponent(returnUrl)}`);
     } catch {
       setError("네트워크 오류가 발생했습니다. 다시 시도해주세요.");
@@ -96,21 +115,36 @@ function OnboardingForm() {
   }
 
   async function handleSkip() {
+    if (!termsAgreed) {
+      setError("서비스를 이용하려면 필수 약관에 동의해주세요.");
+      return;
+    }
     setLoading(true);
+    setError(null);
     try {
-      // Generate a default nickname from email
+      // Generate a default nickname from email (skip nickname only)
       const defaultNick = userEmail
         ? userEmail.split("@")[0].replace(/[^a-zA-Z0-9가-힣_]/g, "_").slice(0, 20)
         : `user_${Date.now().toString(36)}`;
+      // Ensure generated nickname meets minimum length
+      const safeName = defaultNick.length >= 2 ? defaultNick : `user_${Date.now().toString(36)}`;
 
-      await fetch("/api/onboarding", {
+      const res = await fetch("/api/onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ nickname: defaultNick }),
+        body: JSON.stringify({ nickname: safeName, terms_agreed: true }),
       });
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error?.message || "오류가 발생했습니다");
+        setLoading(false);
+        return;
+      }
+      localStorage.removeItem("vibecopy_terms_agreed");
       router.push(returnUrl);
     } catch {
+      setError("네트워크 오류가 발생했습니다. 다시 시도해주세요.");
       setLoading(false);
     }
   }
@@ -262,68 +296,89 @@ function OnboardingForm() {
               </div>
             </div>
 
-            {/* Terms */}
-            <div style={{ marginBottom: "1.5rem" }}>
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.75rem",
-                  marginBottom: "0.75rem",
-                  cursor: "pointer",
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={termsAll}
-                  onChange={(e) => handleAllCheck(e.target.checked)}
-                  style={{ width: 18, height: 18, accentColor: "var(--indigo-500)" }}
-                />
-                <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>전체 동의</span>
-              </label>
-              <div
-                style={{
-                  borderTop: "1px solid var(--border-color)",
-                  paddingTop: "0.75rem",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "0.75rem",
-                }}
-              >
-                <label
-                  style={{ display: "flex", alignItems: "center", gap: "0.75rem", cursor: "pointer" }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={termsService}
-                    onChange={(e) => handleItemCheck(e.target.checked, termsPrivacy)}
-                    style={{ width: 18, height: 18, accentColor: "var(--indigo-500)" }}
-                  />
-                  <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-                    <Link href="/terms" style={{ color: "var(--indigo-400)", textDecoration: "underline" }}>
-                      이용약관
-                    </Link>{" "}
-                    동의 (필수)
-                  </span>
-                </label>
-                <label
-                  style={{ display: "flex", alignItems: "center", gap: "0.75rem", cursor: "pointer" }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={termsPrivacy}
-                    onChange={(e) => handleItemCheck(termsService, e.target.checked)}
-                    style={{ width: 18, height: 18, accentColor: "var(--indigo-500)" }}
-                  />
-                  <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-                    <Link href="/privacy" style={{ color: "var(--indigo-400)", textDecoration: "underline" }}>
-                      개인정보처리방침
-                    </Link>{" "}
-                    동의 (필수)
-                  </span>
-                </label>
+            {/* Terms — hidden if already agreed on login page */}
+            {termsPreAgreed ? (
+              <div style={{
+                marginBottom: "1.5rem",
+                padding: "0.75rem 1rem",
+                background: "rgba(52, 211, 153, 0.08)",
+                borderRadius: "0.5rem",
+                border: "1px solid rgba(52, 211, 153, 0.2)",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+              }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--emerald-400)" strokeWidth="2">
+                  <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+                <span style={{ fontSize: "0.85rem", color: "var(--emerald-400)" }}>
+                  이용약관 및 개인정보처리방침에 동의 완료
+                </span>
               </div>
-            </div>
+            ) : (
+              <div style={{ marginBottom: "1.5rem" }}>
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.75rem",
+                    marginBottom: "0.75rem",
+                    cursor: "pointer",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={termsAll}
+                    onChange={(e) => handleAllCheck(e.target.checked)}
+                    style={{ width: 18, height: 18, accentColor: "var(--indigo-500)" }}
+                  />
+                  <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>전체 동의</span>
+                </label>
+                <div
+                  style={{
+                    borderTop: "1px solid var(--border-color)",
+                    paddingTop: "0.75rem",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.75rem",
+                  }}
+                >
+                  <label
+                    style={{ display: "flex", alignItems: "center", gap: "0.75rem", cursor: "pointer" }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={termsService}
+                      onChange={(e) => handleItemCheck(e.target.checked, termsPrivacy)}
+                      style={{ width: 18, height: 18, accentColor: "var(--indigo-500)" }}
+                    />
+                    <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+                      <Link href="/terms" style={{ color: "var(--indigo-400)", textDecoration: "underline" }}>
+                        이용약관
+                      </Link>{" "}
+                      동의 (필수)
+                    </span>
+                  </label>
+                  <label
+                    style={{ display: "flex", alignItems: "center", gap: "0.75rem", cursor: "pointer" }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={termsPrivacy}
+                      onChange={(e) => handleItemCheck(termsService, e.target.checked)}
+                      style={{ width: 18, height: 18, accentColor: "var(--indigo-500)" }}
+                    />
+                    <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+                      <Link href="/privacy" style={{ color: "var(--indigo-400)", textDecoration: "underline" }}>
+                        개인정보처리방침
+                      </Link>{" "}
+                      동의 (필수)
+                    </span>
+                  </label>
+                </div>
+              </div>
+            )}
 
             {error && (
               <div className="error-message" style={{ marginTop: 0, marginBottom: "1rem" }}>
@@ -345,16 +400,22 @@ function OnboardingForm() {
               width: "100%",
               textAlign: "center",
               marginTop: "1.5rem",
-              color: "var(--text-muted)",
+              color: termsAgreed ? "var(--text-muted)" : "var(--text-muted)",
               fontSize: "0.85rem",
               background: "none",
               border: "none",
-              cursor: "pointer",
+              cursor: loading ? "not-allowed" : "pointer",
               fontFamily: "inherit",
+              opacity: loading ? 0.5 : 1,
             }}
           >
-            나중에 설정하기
+            닉네임 나중에 설정하기
           </button>
+          {!termsAgreed && (
+            <p style={{ textAlign: "center", fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.5rem" }}>
+              약관 동의 후 닉네임 설정을 건너뛸 수 있습니다
+            </p>
+          )}
         </div>
       </main>
     </div>

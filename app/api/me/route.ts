@@ -21,7 +21,7 @@ export async function GET(request: Request) {
   // Try full select first; if onboarding columns don't exist yet, fall back to basic select
   let result = await supabase
     .from("users")
-    .select("id, email, nickname, plan, credit_balance, trial_ends_at, onboarding_completed")
+    .select("id, email, nickname, plan, credit_balance, trial_ends_at, onboarding_completed, terms_agreed_at")
     .eq("id", user.id)
     .single();
 
@@ -121,10 +121,12 @@ export async function GET(request: Request) {
       id: profile.id,
       email: profile.email,
       nickname: profile.nickname ?? null,
+      social_nickname: user.user_metadata?.full_name || user.user_metadata?.name || null,
       plan: profile.plan,
       credit_balance: creditBalance,
       plan_info: planInfo,
       onboarding_completed: profile.onboarding_completed ?? false,
+      terms_agreed_at: profile.terms_agreed_at ?? null,
       trial: isTrial
         ? {
             active: true,

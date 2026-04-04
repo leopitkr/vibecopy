@@ -70,19 +70,15 @@ export function AuthHeader() {
   const triggerStyle: React.CSSProperties = {
     display: "inline-flex",
     alignItems: "center",
-    gap: "0.5rem",
-    padding: "0.5rem 0.75rem",
+    justifyContent: "center",
+    width: 36,
+    height: 36,
+    padding: 0,
     background: "rgba(255, 255, 255, 0.05)",
     border: "1px solid rgba(255, 255, 255, 0.1)",
-    borderRadius: "0.75rem",
+    borderRadius: "0.625rem",
     color: "#94a3b8",
-    fontSize: "0.85rem",
-    fontWeight: 500,
     cursor: "pointer",
-    maxWidth: 160,
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
     transition: "all 0.2s",
   };
 
@@ -148,7 +144,8 @@ export function AuthHeader() {
                   type="button"
                   style={triggerStyle}
                   onClick={() => setMenuOpen((v) => !v)}
-                  title={user.email ?? undefined}
+                  title="설정"
+                  aria-label="설정"
                   onMouseEnter={(e) => {
                     e.currentTarget.style.background = "rgba(255,255,255,0.1)";
                     e.currentTarget.style.color = "white";
@@ -158,12 +155,10 @@ export function AuthHeader() {
                     e.currentTarget.style.color = "#94a3b8";
                   }}
                 >
-                  <span>{user.nickname || user.email?.split("@")[0] || "내 정보"}</span>
-                  <span style={{
-                    fontSize: "0.65rem",
-                    transition: "transform 0.2s",
-                    transform: menuOpen ? "rotate(180deg)" : "rotate(0)",
-                  }}>&#9662;</span>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                  </svg>
                 </button>
                 {menuOpen && (
                   <div style={dropdownStyle}>
@@ -235,14 +230,9 @@ export function AuthHeader() {
               </div>
             </>
           ) : (
-            <>
-              <Link href={`/login?returnUrl=${encodeURIComponent(returnUrl)}`} className="btn btn-ghost">
-                로그인
-              </Link>
-              <Link href={`/signup?returnUrl=${encodeURIComponent(returnUrl)}`} className="btn btn-primary">
+              <Link href={`/login?returnUrl=${encodeURIComponent(returnUrl)}`} className="btn btn-primary">
                 시작하기
               </Link>
-            </>
           )}
         </nav>
       </div>

@@ -22,8 +22,6 @@ import "@/app/(marketing)/landing.css";
 type SourceType = "text" | "url";
 
 const INPUT_VALUE_MAX_LENGTH = 2000;
-const GUEST_STORAGE_KEY = "vibecopy_guest";
-const GUEST_DAILY_LIMIT = 1;
 
 // Example products for "Try with example" feature
 const EXAMPLE_PRODUCTS = [
@@ -61,11 +59,6 @@ HEPA H13 필터 (미세먼지 99.97% 제거)
 침구/틈새/미니 브러시 3종 포함`,
   },
 ];
-
-type GuestUsageData = {
-  count: number;
-  lastReset: string;
-};
 
 // 에러 코드별 친화적인 메시지
 const ERROR_MESSAGES: Record<string, { title: string; description: string }> = {
@@ -115,38 +108,6 @@ const LOADING_STAGES = [
   { message: "마무리하고 있어요", duration: 10000 },
 ];
 
-function getGuestUsage(): GuestUsageData {
-  if (typeof window === "undefined") {
-    return { count: 0, lastReset: new Date().toISOString().split("T")[0] };
-  }
-  try {
-    const stored = localStorage.getItem(GUEST_STORAGE_KEY);
-    if (!stored) {
-      return { count: 0, lastReset: new Date().toISOString().split("T")[0] };
-    }
-    const data = JSON.parse(stored) as GuestUsageData;
-    const today = new Date().toISOString().split("T")[0];
-    // Reset if it's a new day
-    if (data.lastReset !== today) {
-      return { count: 0, lastReset: today };
-    }
-    return data;
-  } catch {
-    return { count: 0, lastReset: new Date().toISOString().split("T")[0] };
-  }
-}
-
-function incrementGuestUsage(): void {
-  if (typeof window === "undefined") return;
-  const today = new Date().toISOString().split("T")[0];
-  const current = getGuestUsage();
-  const newData: GuestUsageData = {
-    count: current.lastReset === today ? current.count + 1 : 1,
-    lastReset: today,
-  };
-  localStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(newData));
-}
-
 export function GeneratePageClient() {
   const router = useRouter();
   const { toasts, removeToast, showSuccess } = useToast();
@@ -165,15 +126,13 @@ export function GeneratePageClient() {
   const [loading, setLoading] = useState(false);
   const [loadingStage, setLoadingStage] = useState(0);
   const [result, setResult] = useState<GenerateOutput | null>(null);
-  const [resultIsGuest, setResultIsGuest] = useState(false);
   const [creditsAfter, setCreditsAfter] = useState<number | null>(null);
   const [error, setError] = useState<{ code: string; message: string } | null>(null);
   const [upgradeModal, setUpgradeModal] = useState(false);
-  const [guestLimitModal, setGuestLimitModal] = useState(false);
   const [lastIdempotencyKey, setLastIdempotencyKey] = useState<string | null>(null);
 
-  // Determine if user is a guest (not logged in)
-  const isGuest = !meLoading && creditsLeft === null;
+  // Determine if user is logged in
+  const isLoggedIn = !meLoading && creditsLeft !== null;
 
   // 로딩 단계 진행
   useEffect(() => {
@@ -259,6 +218,12 @@ export function GeneratePageClient() {
 
   const handleSubmit = useCallback(
     async (idempotencyKey: string) => {
+      // Redirect to login if not authenticated
+      if (!isLoggedIn) {
+        router.push("/login?returnUrl=/generate");
+        return;
+      }
+
       const inputValue = getInputValue();
       if (!inputValue) {
         setError({ code: "BAD_REQUEST", message: "입력 내용을 입력해 주세요." });
@@ -270,15 +235,6 @@ export function GeneratePageClient() {
           message: "입력 길이가 너무 깁니다. 2000자 이내로 입력해 주세요.",
         });
         return;
-      }
-
-      // For guests, check localStorage limit
-      if (isGuest) {
-        const usage = getGuestUsage();
-        if (usage.count >= GUEST_DAILY_LIMIT) {
-          setGuestLimitModal(true);
-          return;
-        }
       }
 
       setError(null);
@@ -294,24 +250,14 @@ export function GeneratePageClient() {
       setLoading(false);
       if (res.ok) {
         setResult(res.data.output);
-        setResultIsGuest(res.isGuest ?? false);
-        if (!res.isGuest) {
-          setCreditsAfter(res.data.credits.after);
-          setCreditsLeft(res.data.credits.after);
-          // 성공 토스트
-          showSuccess("카피가 성공적으로 생성되었습니다");
-        } else {
-          // Increment guest usage on successful generation
-          incrementGuestUsage();
-          showSuccess("카피가 생성되었습니다");
-        }
+        setCreditsAfter(res.data.credits.after);
+        setCreditsLeft(res.data.credits.after);
+        showSuccess("카피가 성공적으로 생성되었습니다");
         return;
       }
       const err = res.error;
       if (err.code === "UNAUTHORIZED") {
-        // This shouldn't happen anymore since API allows guests,
-        // but keep as fallback
-        setError({ ...err, message: "로그인이 필요합니다." });
+        router.push("/login?returnUrl=/generate");
         return;
       }
       if (err.code === "INSUFFICIENT_CREDITS" || err.code === "DAILY_LIMIT_EXCEEDED") {
@@ -325,7 +271,7 @@ export function GeneratePageClient() {
       }
       setError(err);
     },
-    [getInputValue, sourceType, channel, vibe, isGuest, showSuccess]
+    [getInputValue, sourceType, channel, vibe, isLoggedIn, showSuccess, router]
   );
 
   const onSubmit = useCallback(
@@ -352,15 +298,11 @@ export function GeneratePageClient() {
     setTextValue(example.text);
   }, []);
 
-  // For guests, check localStorage limit
-  const guestLimitReached = isGuest && getGuestUsage().count >= GUEST_DAILY_LIMIT;
-
   const canSubmit =
     !meLoading &&
     !loading &&
     inputValid &&
-    !guestLimitReached &&
-    (isGuest || creditsLeft === null || creditsLeft > 0);
+    (creditsLeft === null || creditsLeft > 0);
 
   const submitDisabledReason = !canSubmit
     ? meLoading
@@ -369,11 +311,9 @@ export function GeneratePageClient() {
         ? inputTooLong
           ? "입력이 2000자를 초과하면 생성할 수 없습니다."
           : "상품 정보를 입력해주세요."
-        : guestLimitReached
-          ? "무료 체험을 모두 사용했습니다. 회원가입하면 7일간 프리미엄 체험!"
-          : creditsLeft !== null && creditsLeft <= 0
-            ? "오늘 사용 가능한 횟수를 모두 사용했습니다."
-            : "준비 중..."
+        : creditsLeft !== null && creditsLeft <= 0
+          ? "오늘 사용 가능한 횟수를 모두 사용했습니다."
+          : "준비 중..."
     : null;
 
   // 에러 메시지 포맷팅
@@ -470,43 +410,6 @@ export function GeneratePageClient() {
                 </div>
               </>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* Guest Limit Modal */}
-      {guestLimitModal && (
-        <div
-          className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="guest-limit-modal-title"
-        >
-          <div className="generate-modal">
-            <h2 id="guest-limit-modal-title">
-              무료 체험을 모두 사용했습니다
-            </h2>
-            <p>회원가입하시면 7일간 프리미엄 AI로 매일 3회 무료 체험할 수 있습니다.</p>
-            <ul className="generate-modal-list">
-              <li>- 7일간 프리미엄 AI(gpt-4o) 체험</li>
-              <li>- 생성 기록 저장 및 재사용</li>
-              <li>- 프리미엄 플랜 업그레이드 가능</li>
-            </ul>
-            <div className="generate-modal-buttons">
-              <Link href="/signup?returnUrl=/generate" className="btn btn-primary">
-                회원가입
-              </Link>
-              <Link href="/login?returnUrl=/generate" className="btn btn-ghost">
-                로그인
-              </Link>
-              <button
-                type="button"
-                onClick={() => setGuestLimitModal(false)}
-                className="btn btn-ghost"
-              >
-                닫기
-              </button>
-            </div>
           </div>
         </div>
       )}
@@ -689,15 +592,15 @@ export function GeneratePageClient() {
                 aria-busy={loading}
                 className="btn btn-primary generate-submit-btn"
               >
-                {isGuest ? "무료로 카피 생성하기" : "카피 생성하기"}
+                {isLoggedIn ? "카피 생성하기" : "회원가입 후 7일 무료 체험 시작"}
               </button>
               {submitDisabledReason ? (
                 <p className="generate-submit-hint" role="status">
                   {submitDisabledReason}
                 </p>
-              ) : isGuest && !guestLimitReached ? (
+              ) : !isLoggedIn ? (
                 <p className="generate-submit-hint">
-                  비회원도 하루 1회 무료로 체험할 수 있습니다
+                  가입 즉시 7일간 하루 3회 프리미엄 AI 무료 체험
                 </p>
               ) : null}
             </div>
@@ -706,40 +609,19 @@ export function GeneratePageClient() {
           {/* Result Section */}
           {result && (
             <div className="generate-result-section">
-              {/* 자동 저장 알림 (로그인 사용자만) */}
-              {!resultIsGuest && (
-                <div className="generate-save-notice">
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>자동으로 저장되었습니다</span>
-                  <Link href="/history" className="generate-save-link">
-                    기록 보기
-                  </Link>
-                </div>
-              )}
+              <div className="generate-save-notice">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>자동으로 저장되었습니다</span>
+                <Link href="/history" className="generate-save-link">
+                  기록 보기
+                </Link>
+              </div>
 
               <div className="generate-result-card">
                 <CopyPackageView output={result} channel={channel} />
               </div>
-
-              {/* Guest signup banner */}
-              {resultIsGuest && (
-                <div className="generate-guest-banner">
-                  <p className="generate-guest-title">결과가 마음에 드셨나요?</p>
-                  <p className="generate-guest-desc">
-                    회원가입하면 7일간 프리미엄 AI 체험 + 생성 기록 저장이 가능합니다.
-                  </p>
-                  <div className="generate-guest-buttons">
-                    <Link href="/signup?returnUrl=/generate" className="btn btn-primary">
-                      회원가입
-                    </Link>
-                    <Link href="/login?returnUrl=/generate" className="btn btn-ghost">
-                      로그인
-                    </Link>
-                  </div>
-                </div>
-              )}
 
               {/* Action buttons below result */}
               <div className="generate-action-buttons">
@@ -747,32 +629,29 @@ export function GeneratePageClient() {
                   type="button"
                   onClick={() => {
                     setResult(null);
-                    setResultIsGuest(false);
                     window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
                   className="btn btn-ghost"
                 >
                   다른 상품으로 생성하기
                 </button>
-                {!resultIsGuest && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const key = createIdempotencyKey();
-                      setLastIdempotencyKey(key);
-                      handleSubmit(key);
-                    }}
-                    disabled={loading}
-                    className="btn btn-primary"
-                  >
-                    같은 상품 다시 생성
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const key = createIdempotencyKey();
+                    setLastIdempotencyKey(key);
+                    handleSubmit(key);
+                  }}
+                  disabled={loading}
+                  className="btn btn-primary"
+                >
+                  같은 상품 다시 생성
+                </button>
               </div>
 
               {/* Credits & feedback */}
               <div className="generate-footer-info">
-                {creditsAfter !== null && !resultIsGuest && (
+                {creditsAfter !== null && (
                   <p className="generate-credits-info">남은 크레딧: {creditsAfter}</p>
                 )}
                 <p>
@@ -791,7 +670,7 @@ export function GeneratePageClient() {
         <div className="footer-inner">
           <span>VibeCopy</span>
           <nav>
-            {!isGuest && (
+            {isLoggedIn && (
               <>
                 <Link href="/me">내 정보</Link>
                 <Link href="/history">생성 기록</Link>
@@ -799,10 +678,9 @@ export function GeneratePageClient() {
             )}
             <Link href="/">홈</Link>
             <Link href="/pricing">요금제</Link>
-            {isGuest && (
+            {!isLoggedIn && (
               <>
-                <Link href="/login?returnUrl=/generate">로그인</Link>
-                <Link href="/signup?returnUrl=/generate">회원가입</Link>
+                <Link href="/login?returnUrl=/generate">로그인 / 회원가입</Link>
               </>
             )}
           </nav>

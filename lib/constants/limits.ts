@@ -15,8 +15,7 @@ export interface PlanConfig {
   labelKo: string;
 }
 
-export const PLAN_LIMITS: Record<"guest" | PlanType, PlanConfig> = {
-  guest: { dailyLimit: 1, type: "daily", label: "Guest", labelKo: "비회원" },
+export const PLAN_LIMITS: Record<PlanType, PlanConfig> = {
   free: { dailyLimit: 1, type: "daily", label: "Free", labelKo: "Free" },
   standard: { monthlyCredits: 100, type: "monthly", label: "Standard", labelKo: "Standard" },
   pro: { monthlyCredits: 999999, type: "unlimited", label: "Pro", labelKo: "Pro" },

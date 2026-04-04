@@ -1,10 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
+function safeReturnUrl(raw: string | null): string {
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return "/generate";
+  return raw;
+}
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const returnUrl = searchParams.get("returnUrl") || "/generate";
+  const returnUrl = safeReturnUrl(searchParams.get("returnUrl"));
 
   if (code) {
     const supabase = await createClient();
