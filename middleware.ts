@@ -55,7 +55,7 @@ export async function middleware(request: NextRequest) {
           .eq("id", user.id)
           .maybeSingle();
 
-        if (!error && profile && !profile.onboarding_completed) {
+        if (!error && (!profile || !profile.onboarding_completed)) {
           const redirectUrl = new URL("/onboarding", request.url);
           redirectUrl.searchParams.set("returnUrl", pathname);
           return NextResponse.redirect(redirectUrl);

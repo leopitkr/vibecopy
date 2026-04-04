@@ -22,8 +22,8 @@ export async function GET(request: Request) {
             .eq("id", user.id)
             .maybeSingle();
 
-          // New user or onboarding not completed → redirect to onboarding
-          if (!error && profile && !profile.onboarding_completed) {
+          // New user (no profile row yet) or onboarding not completed → redirect to onboarding
+          if (!error && (!profile || !profile.onboarding_completed)) {
             return NextResponse.redirect(
               `${origin}/onboarding?returnUrl=${encodeURIComponent(returnUrl)}`
             );
