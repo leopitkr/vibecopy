@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { writeErrorLog } from "@/lib/logging/errorLog";
 import { NextResponse } from "next/server";
-import { PLAN_LIMITS, type PlanType, type PlanLimitType } from "@/lib/constants/limits";
+import { PLAN_LIMITS, TRIAL_CONFIG, type PlanType, type PlanLimitType } from "@/lib/constants/limits";
 
 export const dynamic = "force-dynamic";
 
@@ -85,8 +85,8 @@ export async function GET(request: Request) {
 
   // Free plan: show remaining daily uses, not DB credit_balance
   if (plan === "free") {
-    // Trial users get 3/day, regular free users get 1/day
-    const dailyLimit = isTrial ? 3 : PLAN_LIMITS.free.dailyLimit!;
+    // Trial users get 3/day, expired free users get 1/day
+    const dailyLimit = isTrial ? TRIAL_CONFIG.dailyLimit : PLAN_LIMITS.free.dailyLimit!;
     const startOfToday = new Date();
     startOfToday.setUTCHours(0, 0, 0, 0);
     const { count } = await supabase
@@ -110,7 +110,7 @@ export async function GET(request: Request) {
     remaining: number;
   } = {
     type: planConfig.type,
-    label: planConfig.labelKo,
+    label: isTrial ? TRIAL_CONFIG.label : planConfig.labelKo,
     limit,
     remaining,
   };
@@ -127,6 +127,7 @@ export async function GET(request: Request) {
       plan_info: planInfo,
       onboarding_completed: profile.onboarding_completed ?? false,
       terms_agreed_at: profile.terms_agreed_at ?? null,
+      trial_ends_at: profile.trial_ends_at ?? null,
       trial: isTrial
         ? {
             active: true,

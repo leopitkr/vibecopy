@@ -10,27 +10,48 @@ export type PlanInfo = {
   remaining: number;
 };
 
+type TrialInfo = {
+  active: boolean;
+  ends_at: string;
+};
+
 type CreditBadgeProps = {
   plan: PlanType;
   planInfo?: PlanInfo | null;
+  trialInfo?: TrialInfo | null;
   creditsLeft: number | null;
   loading?: boolean;
 };
 
-function getBadgeText(plan: PlanType, planInfo: PlanInfo | null | undefined, creditsLeft: number | null): string {
+function getTrialDaysLeft(endsAt: string): number {
+  const diff = new Date(endsAt).getTime() - Date.now();
+  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+}
+
+function getBadgeText(plan: PlanType, planInfo: PlanInfo | null | undefined, trialInfo: TrialInfo | null | undefined, creditsLeft: number | null): string {
   if (planInfo) {
     if (planInfo.type === "unlimited") {
-      return `${planInfo.label} · 무제한 이용 중`;
+      return `Pro · 무제한`;
     }
     if (planInfo.type === "daily") {
-      return `${planInfo.label} 플랜 · 오늘 ${planInfo.remaining}회 남음`;
+      if (trialInfo?.active) {
+        const days = getTrialDaysLeft(trialInfo.ends_at);
+        return `체험 ${days}일 · ${planInfo.remaining}회 남음`;
+      }
+      return `무료 · ${planInfo.remaining}회 남음`;
     }
     if (planInfo.type === "monthly") {
-      return `${planInfo.label} · 이번 달 ${planInfo.remaining}회 남음`;
+      return `Standard · ${planInfo.remaining}회 남음`;
     }
   }
-  // Fallback for old API response format
   return `${creditsLeft ?? 0} 크레딧`;
+}
+
+function getRemainingState(remaining: number): "empty" | "warn" | "low" | "" {
+  if (remaining <= 0) return "empty";
+  if (remaining === 1) return "low";
+  if (remaining === 2) return "warn";
+  return "";
 }
 
 function isLowCredit(plan: PlanType, remaining: number): boolean {
@@ -41,6 +62,7 @@ function isLowCredit(plan: PlanType, remaining: number): boolean {
 export function CreditBadge({
   plan,
   planInfo,
+  trialInfo,
   creditsLeft,
   loading = false,
 }: CreditBadgeProps) {
@@ -56,22 +78,21 @@ export function CreditBadge({
   const remaining = planInfo?.remaining ?? creditsLeft ?? 0;
   const isLow = isLowCredit(plan, remaining);
   const isEmpty = remaining <= 0;
-  const badgeText = getBadgeText(plan, planInfo, creditsLeft);
-
-  const showUpgrade = (isEmpty || isLow) && plan === "free";
+  const state = getRemainingState(remaining);
+  const badgeText = getBadgeText(plan, planInfo, trialInfo, creditsLeft);
 
   return (
-    <div className="credit-badge-wrapper">
+    <Link href="/pricing" className="credit-badge-wrapper credit-badge-link">
       <span
-        className={`credit-badge ${isEmpty ? "empty" : isLow ? "low" : ""}`}
+        className={`credit-badge ${state}`}
       >
         {badgeText}
       </span>
-      {showUpgrade && (
-        <Link href="/pricing" className={`credit-upgrade-btn ${isEmpty ? "empty" : "low"}`}>
-          업그레이드
-        </Link>
+      {(isEmpty || isLow) && plan === "free" && (
+        <span className={`credit-upgrade-btn ${isEmpty ? "empty" : "low"}`}>
+          {isEmpty ? "Standard로 업그레이드" : "업그레이드"}
+        </span>
       )}
-    </div>
+    </Link>
   );
 }

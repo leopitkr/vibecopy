@@ -286,14 +286,14 @@ export function RegenerateButton({
             </div>
             <div style={styles.upgradeTextWrap}>
               <p style={styles.upgradeTitle}>
-                생성 가능 횟수를 모두 사용했습니다
+                오늘 생성 가능 횟수를 모두 사용했어요
               </p>
               <p style={styles.upgradeDesc}>
-                플랜을 업그레이드하면 더 많이 생성할 수 있습니다.
+                Standard 플랜으로 월 100회까지 프리미엄 AI로 생성할 수 있어요.
               </p>
               <div style={styles.upgradeButtons}>
                 <Link href="/pricing" style={styles.upgradePrimaryBtn}>
-                  플랜 보기
+                  Standard 플랜 보기
                 </Link>
                 <button
                   type="button"

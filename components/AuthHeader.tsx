@@ -6,12 +6,18 @@ import { useRouter, usePathname } from "next/navigation";
 import { CreditBadge, type PlanInfo } from "./CreditBadge";
 import type { PlanType } from "@/lib/constants/limits";
 
+type TrialInfo = {
+  active: boolean;
+  ends_at: string;
+};
+
 type UserData = {
   email: string | null;
   nickname: string | null;
   plan: PlanType;
   credit_balance: number;
   plan_info: PlanInfo | null;
+  trial: TrialInfo | null;
 };
 
 export function AuthHeader() {
@@ -33,6 +39,7 @@ export function AuthHeader() {
             plan: (data.data.plan as PlanType) ?? "free",
             credit_balance: data.data.credit_balance ?? 0,
             plan_info: data.data.plan_info ?? null,
+            trial: data.data.trial ?? null,
           });
         }
       })
@@ -137,6 +144,7 @@ export function AuthHeader() {
               <CreditBadge
                 plan={user.plan}
                 planInfo={user.plan_info}
+                trialInfo={user.trial}
                 creditsLeft={user.credit_balance}
               />
               <div ref={menuRef} style={{ position: "relative" }}>
@@ -230,8 +238,8 @@ export function AuthHeader() {
               </div>
             </>
           ) : (
-              <Link href={`/login?returnUrl=${encodeURIComponent(returnUrl)}`} className="btn btn-primary">
-                시작하기
+              <Link href={`/login?mode=signin&returnUrl=${encodeURIComponent(returnUrl)}`} className="btn btn-primary">
+                로그인
               </Link>
           )}
         </nav>

@@ -76,15 +76,15 @@ const ERROR_MESSAGES: Record<string, { title: string; description: string }> = {
   },
   INSUFFICIENT_CREDITS: {
     title: "크레딧이 부족합니다",
-    description: "플랜을 업그레이드하면 더 많이 생성할 수 있습니다.",
+    description: "Standard 플랜으로 월 100회까지 프리미엄 AI로 생성할 수 있어요.",
   },
   IDEMPOTENCY_CONFLICT: {
     title: "이미 처리된 요청입니다",
     description: "잠시 후 다시 시도해주세요.",
   },
   DAILY_LIMIT_EXCEEDED: {
-    title: "오늘 사용량을 모두 사용했습니다",
-    description: "내일 다시 시도하거나 플랜을 업그레이드해주세요.",
+    title: "오늘 사용량을 모두 사용했어요",
+    description: "Standard 플랜으로 월 100회까지 프리미엄 AI로 생성할 수 있어요.",
   },
   RATE_LIMIT_EXCEEDED: {
     title: "요청이 너무 빠릅니다",
@@ -108,6 +108,11 @@ const LOADING_STAGES = [
   { message: "마무리하고 있어요", duration: 10000 },
 ];
 
+function getTrialDaysLeft(endsAt: string): number {
+  const diff = new Date(endsAt).getTime() - Date.now();
+  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+}
+
 export function GeneratePageClient() {
   const router = useRouter();
   const { toasts, removeToast, showSuccess } = useToast();
@@ -116,8 +121,10 @@ export function GeneratePageClient() {
   const [userNickname, setUserNickname] = useState<string | null>(null);
   const [userPlan, setUserPlan] = useState<PlanType | null>(null);
   const [planInfo, setPlanInfo] = useState<PlanInfo | null>(null);
+  const [trialInfo, setTrialInfo] = useState<{ active: boolean; ends_at: string } | null>(null);
   const [meLoading, setMeLoading] = useState(true);
   const [upgradeToast, setUpgradeToast] = useState(false);
+  const [trialEndedBanner, setTrialEndedBanner] = useState(false);
   const [sourceType, setSourceType] = useState<SourceType>("text");
   const [textValue, setTextValue] = useState("");
   const [urlValue, setUrlValue] = useState("");
@@ -172,12 +179,24 @@ export function GeneratePageClient() {
         setUserNickname(data.data.nickname ?? null);
         setUserPlan((data.data.plan as PlanType) ?? "free");
         setPlanInfo(data.data.plan_info ?? null);
+        setTrialInfo(data.data.trial ?? null);
+
+        // Trial 종료 직후 안내 배너: free 플랜 + trial_ends_at 존재 + trial 비활성
+        if (
+          data.data.plan === "free" &&
+          !data.data.trial &&
+          data.data.trial_ends_at
+        ) {
+          const dismissed = sessionStorage.getItem("vibecopy_trial_ended_dismissed");
+          if (!dismissed) setTrialEndedBanner(true);
+        }
       } else {
         setCreditsLeft(null);
         setUserEmail(null);
         setUserNickname(null);
         setUserPlan(null);
         setPlanInfo(null);
+        setTrialInfo(null);
       }
     } catch {
       setCreditsLeft(null);
@@ -185,6 +204,7 @@ export function GeneratePageClient() {
       setUserNickname(null);
       setUserPlan(null);
       setPlanInfo(null);
+      setTrialInfo(null);
     } finally {
       setMeLoading(false);
     }
@@ -348,7 +368,7 @@ export function GeneratePageClient() {
           ? "입력이 2000자를 초과하면 생성할 수 없습니다."
           : "상품 정보를 입력해주세요."
         : creditsLeft !== null && creditsLeft <= 0
-          ? "오늘 사용 가능한 횟수를 모두 사용했습니다."
+          ? "오늘 무료 사용 횟수를 모두 사용했어요."
           : "준비 중..."
     : null;
 
@@ -394,6 +414,62 @@ export function GeneratePageClient() {
         </div>
       )}
 
+      {/* Trial Ended Banner */}
+      {trialEndedBanner && (
+        <div
+          className="fixed left-1/2 top-20 z-50 -translate-x-1/2 transform rounded-lg px-6 py-4 shadow-lg"
+          role="status"
+          aria-live="polite"
+          style={{
+            background: "linear-gradient(135deg, rgba(99,102,241,0.95), rgba(79,70,229,0.95))",
+            color: "white",
+            maxWidth: "28rem",
+            width: "calc(100% - 2rem)",
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            <p style={{ fontWeight: 600, fontSize: "0.95rem", margin: 0 }}>
+              무료 체험이 종료됐어요
+            </p>
+            <p style={{ fontSize: "0.85rem", opacity: 0.9, margin: 0, lineHeight: 1.5 }}>
+              이제 하루 1회 무료로 사용할 수 있어요.
+              <br />
+              더 자주 생성하려면 업그레이드하세요.
+            </p>
+            <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.25rem" }}>
+              <Link
+                href="/pricing"
+                className="btn btn-primary"
+                style={{
+                  background: "white",
+                  color: "var(--indigo-600, #4f46e5)",
+                  fontSize: "0.85rem",
+                  padding: "0.4rem 1rem",
+                }}
+              >
+                Standard 플랜 보기
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  setTrialEndedBanner(false);
+                  sessionStorage.setItem("vibecopy_trial_ended_dismissed", "1");
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "rgba(255,255,255,0.8)",
+                  fontSize: "0.85rem",
+                  cursor: "pointer",
+                }}
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Upgrade Modal (for logged-in users) */}
       {upgradeModal && (
         <div
@@ -408,14 +484,22 @@ export function GeneratePageClient() {
                 <h2 id="upgrade-modal-title">
                   오늘 무료 생성을 모두 사용했어요
                 </h2>
-                <p>
-                  내일 다시 3회 무료로 사용하거나,
-                  <br />
-                  업그레이드하면 더 많이 생성할 수 있어요.
-                </p>
+                {trialInfo?.active ? (
+                  <p>
+                    내일 다시 3회 무료로 사용하거나,
+                    <br />
+                    Standard 플랜으로 월 100회까지 프리미엄 AI로 생성할 수 있어요.
+                  </p>
+                ) : (
+                  <p>
+                    내일 다시 1회 무료로 사용하거나,
+                    <br />
+                    Standard 플랜으로 월 100회까지 프리미엄 AI로 생성할 수 있어요.
+                  </p>
+                )}
                 <div className="generate-modal-buttons">
                   <Link href="/pricing" className="btn btn-primary">
-                    플랜 업그레이드
+                    Standard 플랜 보기
                   </Link>
                   <button
                     type="button"
@@ -646,6 +730,15 @@ export function GeneratePageClient() {
 
             {/* Submit Button */}
             <div className="generate-submit-section">
+              {isLoggedIn && planInfo && planInfo.type !== "unlimited" && (
+                <p className={`generate-usage-hint ${planInfo.remaining <= 0 ? "empty" : planInfo.remaining === 1 ? "low" : planInfo.remaining === 2 ? "warn" : ""}`}>
+                  {trialInfo?.active
+                    ? `무료 체험 ${getTrialDaysLeft(trialInfo.ends_at)}일 남음 · 오늘 ${planInfo.remaining}회 남음`
+                    : planInfo.type === "daily"
+                      ? `오늘 무료 사용 ${planInfo.remaining}회 남음`
+                      : `이번 달 ${planInfo.remaining}회 남음`}
+                </p>
+              )}
               <button
                 type="submit"
                 disabled={!canSubmit}
