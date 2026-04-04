@@ -47,21 +47,17 @@ export async function middleware(request: NextRequest) {
     const isAllowed = ONBOARDING_ALLOWED.some((r) => pathname.startsWith(r));
 
     if (isProtected && !isAllowed) {
-      // Check onboarding status (gracefully skip if column doesn't exist yet)
-      try {
-        const { data: profile, error } = await supabase
-          .from("users")
-          .select("onboarding_completed")
-          .eq("id", user.id)
-          .maybeSingle();
+      const { data: profile } = await supabase
+        .from("users")
+        .select("onboarding_completed")
+        .eq("id", user.id)
+        .maybeSingle();
 
-        if (!error && (!profile || !profile.onboarding_completed)) {
-          const redirectUrl = new URL("/onboarding", request.url);
-          redirectUrl.searchParams.set("returnUrl", pathname);
-          return NextResponse.redirect(redirectUrl);
-        }
-      } catch {
-        // Column may not exist yet — let user through
+      // Redirect to onboarding unless profile exists with onboarding_completed === true
+      if (!profile?.onboarding_completed) {
+        const redirectUrl = new URL("/onboarding", request.url);
+        redirectUrl.searchParams.set("returnUrl", pathname);
+        return NextResponse.redirect(redirectUrl);
       }
     }
   }
