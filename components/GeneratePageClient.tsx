@@ -121,6 +121,8 @@ export function GeneratePageClient() {
   const [sourceType, setSourceType] = useState<SourceType>("text");
   const [textValue, setTextValue] = useState("");
   const [urlValue, setUrlValue] = useState("");
+  const [urlFetching, setUrlFetching] = useState(false);
+  const [urlError, setUrlError] = useState<string | null>(null);
   const [channel, setChannel] = useState<Channel>("smartstore");
   const [vibe, setVibe] = useState<Vibe>("trust");
   const [loading, setLoading] = useState(false);
@@ -209,8 +211,8 @@ export function GeneratePageClient() {
   }, [router]);
 
   const getInputValue = useCallback((): string => {
-    return sourceType === "url" ? urlValue.trim() : textValue.trim();
-  }, [sourceType, urlValue, textValue]);
+    return textValue.trim();
+  }, [textValue]);
 
   const inputLength = getInputValue().length;
   const inputTooLong = inputLength > INPUT_VALUE_MAX_LENGTH;
@@ -297,6 +299,40 @@ export function GeneratePageClient() {
     setSourceType("text");
     setTextValue(example.text);
   }, []);
+
+  const handleFetchUrl = useCallback(async () => {
+    const url = urlValue.trim();
+    if (!url) {
+      setUrlError("URL을 입력해주세요.");
+      return;
+    }
+    setUrlError(null);
+    setUrlFetching(true);
+    try {
+      const res = await fetch("/api/extract-meta", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        setUrlError(data.error ?? "메타 정보를 가져올 수 없습니다.");
+        return;
+      }
+      if (data.warning) {
+        setUrlError(data.warning);
+        return;
+      }
+      if (data.data?.text) {
+        setTextValue(data.data.text);
+        setSourceType("text");
+      }
+    } catch {
+      setUrlError("네트워크 오류가 발생했습니다. 다시 시도해주세요.");
+    } finally {
+      setUrlFetching(false);
+    }
+  }, [urlValue]);
 
   const canSubmit =
     !meLoading &&
@@ -457,11 +493,10 @@ export function GeneratePageClient() {
                   </button>
                   <button
                     type="button"
-                    disabled
-                    className="generate-toggle-btn"
-                    title="URL 자동 분석 기능을 준비 중입니다"
+                    onClick={() => setSourceType("url")}
+                    className={`generate-toggle-btn ${sourceType === "url" ? "active" : ""}`}
                   >
-                    URL 입력 <span style={{ fontSize: "0.7em", opacity: 0.6, marginLeft: 4 }}>준비중</span>
+                    URL 입력
                   </button>
                 </div>
               </div>
@@ -510,26 +545,51 @@ export function GeneratePageClient() {
                     <label htmlFor="product-url" className="generate-label">
                       상품 URL
                     </label>
-                    <input
-                      id="product-url"
-                      type="url"
-                      value={urlValue}
-                      onChange={(e) => setUrlValue(e.target.value)}
-                      placeholder="https://smartstore.naver.com/... 또는 https://www.coupang.com/..."
-                      className="generate-input"
-                      aria-describedby="input-helper"
-                    />
-                    <div className="generate-input-helper">
-                      <p className="generate-hint">
-                        상품 상세 페이지 URL을 입력하면 자동으로 분석합니다
-                      </p>
-                      <p
-                        id="input-helper"
-                        className={`generate-counter ${inputTooLong ? "error" : ""}`}
-                        aria-live="polite"
+                    <div style={{ display: "flex", gap: "0.5rem" }}>
+                      <input
+                        id="product-url"
+                        type="url"
+                        value={urlValue}
+                        onChange={(e) => {
+                          setUrlValue(e.target.value);
+                          setUrlError(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleFetchUrl();
+                          }
+                        }}
+                        placeholder="https://smartstore.naver.com/... 또는 https://www.coupang.com/..."
+                        className="generate-input"
+                        style={{ flex: 1 }}
+                        disabled={urlFetching}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleFetchUrl}
+                        disabled={urlFetching || !urlValue.trim()}
+                        className="generate-toggle-btn active"
+                        style={{
+                          whiteSpace: "nowrap",
+                          padding: "0 1.25rem",
+                          borderRadius: "0.75rem",
+                          opacity: urlFetching || !urlValue.trim() ? 0.5 : 1,
+                        }}
                       >
-                        {inputLength.toLocaleString()}/{INPUT_VALUE_MAX_LENGTH.toLocaleString()}
-                      </p>
+                        {urlFetching ? "불러오는 중..." : "불러오기"}
+                      </button>
+                    </div>
+                    <div className="generate-input-helper">
+                      {urlError ? (
+                        <p className="generate-hint" style={{ color: "var(--red-400)" }}>
+                          {urlError}
+                        </p>
+                      ) : (
+                        <p className="generate-hint">
+                          URL의 메타 정보를 가져와 상품 정보란에 자동으로 채웁니다
+                        </p>
+                      )}
                     </div>
                   </div>
                 )}
