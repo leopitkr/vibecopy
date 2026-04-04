@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { GenerationsList } from "@/components/GenerationsList";
+import { AuthHeader } from "@/components/AuthHeader";
 import "../(marketing)/landing.css";
 
 export const metadata = {
@@ -13,21 +14,7 @@ export default function HistoryPage() {
       <div className="landing-gradient" />
 
       {/* Header */}
-      <header className="header-blur">
-        <div className="header-inner">
-          <Link href="/" className="logo">
-            VibeCopy
-          </Link>
-          <nav>
-            <Link href="/generate">카피 생성</Link>
-            <Link href="/history">생성 기록</Link>
-            <Link href="/me">내 정보</Link>
-            <Link href="/generate" className="btn btn-primary">
-              새로 생성
-            </Link>
-          </nav>
-        </div>
-      </header>
+      <AuthHeader />
 
       <main>
         <section className="content-section">

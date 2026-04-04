@@ -15,6 +15,7 @@ import { ChannelPicker } from "./ChannelPicker";
 import { VibePresetPicker } from "./VibePresetPicker";
 import { CopyPackageView } from "./CopyPackageView";
 import { ToastContainer, useToast } from "./Toast";
+import { AuthHeader } from "./AuthHeader";
 import type { PlanType } from "@/lib/constants/limits";
 import "@/app/(marketing)/landing.css";
 
@@ -351,17 +352,6 @@ export function GeneratePageClient() {
     setTextValue(example.text);
   }, []);
 
-  const handleLogout = useCallback(async () => {
-    try {
-      await fetch("/api/logout", { method: "POST", credentials: "include" });
-      router.refresh();
-      setCreditsLeft(null);
-      setUserEmail(null);
-    } catch {
-      // Ignore logout errors
-    }
-  }, [router]);
-
   // For guests, check localStorage limit
   const guestLimitReached = isGuest && getGuestUsage().count >= GUEST_DAILY_LIMIT;
 
@@ -399,62 +389,8 @@ export function GeneratePageClient() {
       {/* Toast Container */}
       <ToastContainer toasts={toasts} onClose={removeToast} />
 
-      {/* Header - 홈과 동일 */}
-      <header className="header-blur">
-        <div className="header-inner">
-          <Link href="/" className="logo">
-            VibeCopy
-          </Link>
-          <nav>
-            <Link href="/pricing">요금제</Link>
-            <Link href="/guide">가이드</Link>
-            <Link href="/faq">FAQ</Link>
-            {meLoading ? (
-              <div className="h-8 w-20 animate-pulse rounded bg-white/10" />
-            ) : isGuest ? (
-              <>
-                <Link href="/login?returnUrl=/generate" className="btn btn-ghost">
-                  로그인
-                </Link>
-                <Link href="/signup?returnUrl=/generate" className="btn btn-primary">
-                  회원가입
-                </Link>
-              </>
-            ) : (
-              <>
-                <CreditBadge
-                  plan={userPlan ?? "free"}
-                  planInfo={planInfo}
-                  creditsLeft={creditsLeft}
-                  loading={meLoading}
-                />
-                <Link
-                  href="/me"
-                  style={{
-                    color: "var(--text-secondary)",
-                    fontSize: "0.85rem",
-                    textDecoration: "none",
-                    maxWidth: 120,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                  title={userEmail ?? undefined}
-                >
-                  {userNickname || userEmail?.split("@")[0] || "내 정보"}
-                </Link>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="btn btn-ghost"
-                >
-                  로그아웃
-                </button>
-              </>
-            )}
-          </nav>
-        </div>
-      </header>
+      {/* Header */}
+      <AuthHeader />
 
       {/* Upgrade Toast */}
       {upgradeToast && (

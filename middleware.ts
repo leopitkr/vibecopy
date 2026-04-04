@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 // Routes that require onboarding completion
-const PROTECTED_ROUTES = ["/generate", "/history", "/me", "/dashboard"];
+const PROTECTED_ROUTES = ["/generate", "/history", "/me", "/dashboard", "/account"];
 // Routes that should be accessible without onboarding
 const ONBOARDING_ALLOWED = ["/onboarding", "/welcome", "/auth", "/api", "/login", "/signup", "/pricing", "/guide", "/faq", "/terms", "/feedback"];
 

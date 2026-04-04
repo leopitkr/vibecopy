@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { CreditBadge, type PlanInfo } from "./CreditBadge";
@@ -19,6 +19,8 @@ export function AuthHeader() {
   const pathname = usePathname();
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch("/api/me", { credentials: "include", cache: "no-store" })
@@ -38,7 +40,21 @@ export function AuthHeader() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Close menu on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    if (menuOpen) {
+      document.addEventListener("mousedown", handleClick);
+      return () => document.removeEventListener("mousedown", handleClick);
+    }
+  }, [menuOpen]);
+
   const handleLogout = useCallback(async () => {
+    setMenuOpen(false);
     try {
       await fetch("/api/logout", { method: "POST", credentials: "include" });
       setUser(null);
@@ -50,6 +66,63 @@ export function AuthHeader() {
   }, [router]);
 
   const returnUrl = pathname || "/generate";
+
+  const triggerStyle: React.CSSProperties = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "0.5rem",
+    padding: "0.5rem 0.75rem",
+    background: "rgba(255, 255, 255, 0.05)",
+    border: "1px solid rgba(255, 255, 255, 0.1)",
+    borderRadius: "0.75rem",
+    color: "#94a3b8",
+    fontSize: "0.85rem",
+    fontWeight: 500,
+    cursor: "pointer",
+    maxWidth: 160,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    transition: "all 0.2s",
+  };
+
+  const dropdownStyle: React.CSSProperties = {
+    position: "absolute",
+    top: "calc(100% + 0.5rem)",
+    right: 0,
+    minWidth: 200,
+    background: "rgba(20, 20, 35, 0.97)",
+    backdropFilter: "blur(20px)",
+    border: "1px solid rgba(255, 255, 255, 0.1)",
+    borderRadius: "0.875rem",
+    padding: "0.5rem",
+    zIndex: 9999,
+    boxShadow: "0 8px 32px rgba(0, 0, 0, 0.5)",
+  };
+
+  const menuItemStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.75rem",
+    width: "100%",
+    padding: "0.625rem 0.875rem",
+    background: "none",
+    border: "none",
+    borderRadius: "0.5rem",
+    color: "#94a3b8",
+    fontSize: "0.875rem",
+    fontWeight: 500,
+    textDecoration: "none",
+    cursor: "pointer",
+    transition: "all 0.15s",
+    textAlign: "left" as const,
+  };
+
+  const dividerStyle: React.CSSProperties = {
+    height: 1,
+    background: "rgba(255, 255, 255, 0.1)",
+    margin: "0.375rem 0.5rem",
+  };
 
   return (
     <header className="header-blur">
@@ -70,28 +143,96 @@ export function AuthHeader() {
                 planInfo={user.plan_info}
                 creditsLeft={user.credit_balance}
               />
-              <Link
-                href="/me"
-                style={{
-                  color: "var(--text-secondary)",
-                  fontSize: "0.85rem",
-                  textDecoration: "none",
-                  maxWidth: 120,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-                title={user.email ?? undefined}
-              >
-                {user.nickname || user.email?.split("@")[0] || "내 정보"}
-              </Link>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="btn btn-ghost"
-              >
-                로그아웃
-              </button>
+              <div ref={menuRef} style={{ position: "relative" }}>
+                <button
+                  type="button"
+                  style={triggerStyle}
+                  onClick={() => setMenuOpen((v) => !v)}
+                  title={user.email ?? undefined}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+                    e.currentTarget.style.color = "white";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+                    e.currentTarget.style.color = "#94a3b8";
+                  }}
+                >
+                  <span>{user.nickname || user.email?.split("@")[0] || "내 정보"}</span>
+                  <span style={{
+                    fontSize: "0.65rem",
+                    transition: "transform 0.2s",
+                    transform: menuOpen ? "rotate(180deg)" : "rotate(0)",
+                  }}>&#9662;</span>
+                </button>
+                {menuOpen && (
+                  <div style={dropdownStyle}>
+                    <Link
+                      href="/account"
+                      onClick={() => setMenuOpen(false)}
+                      style={menuItemStyle}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "rgba(255,255,255,0.08)";
+                        e.currentTarget.style.color = "white";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "none";
+                        e.currentTarget.style.color = "#94a3b8";
+                      }}
+                    >
+                      <span style={{ fontSize: "1rem", width: "1.25rem", textAlign: "center" }}>👤</span>
+                      내 정보
+                    </Link>
+                    <Link
+                      href="/account?tab=subscription"
+                      onClick={() => setMenuOpen(false)}
+                      style={menuItemStyle}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "rgba(255,255,255,0.08)";
+                        e.currentTarget.style.color = "white";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "none";
+                        e.currentTarget.style.color = "#94a3b8";
+                      }}
+                    >
+                      <span style={{ fontSize: "1rem", width: "1.25rem", textAlign: "center" }}>💳</span>
+                      구독 관리
+                    </Link>
+                    <Link
+                      href="/history"
+                      onClick={() => setMenuOpen(false)}
+                      style={menuItemStyle}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "rgba(255,255,255,0.08)";
+                        e.currentTarget.style.color = "white";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "none";
+                        e.currentTarget.style.color = "#94a3b8";
+                      }}
+                    >
+                      <span style={{ fontSize: "1rem", width: "1.25rem", textAlign: "center" }}>📄</span>
+                      생성 기록
+                    </Link>
+                    <div style={dividerStyle} />
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      style={{ ...menuItemStyle, color: "#f87171" }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "rgba(248,113,113,0.1)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "none";
+                      }}
+                    >
+                      <span style={{ fontSize: "1rem", width: "1.25rem", textAlign: "center" }}>🚪</span>
+                      로그아웃
+                    </button>
+                  </div>
+                )}
+              </div>
             </>
           ) : (
             <>
