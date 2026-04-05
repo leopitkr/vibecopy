@@ -71,7 +71,7 @@ export default function FAQPage() {
             <div className="cta-box">
               <h2>무료로 체험해 보세요</h2>
               <Link href="/generate" className="btn btn-primary">
-                무료로 3회 사용해보기
+                무료로 체험 시작하기
               </Link>
             </div>
 

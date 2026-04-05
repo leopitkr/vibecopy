@@ -28,6 +28,9 @@ declare
   v_effective_debits int;
   v_ledger_id uuid;
   v_period_start timestamptz;
+  v_free_limit int;
+  v_remaining_before int;
+  v_remaining_after int;
 begin
   if auth.uid() is null or auth.uid() != p_user_id then
     return jsonb_build_object('ok', false, 'error', 'UNAUTHORIZED');
@@ -52,6 +55,27 @@ begin
   where user_id = p_user_id and idempotency_key = p_idempotency_key
   limit 1;
   if found then
+    -- For free users, return count-based remaining (consistent with /api/me)
+    if v_plan = 'free' then
+      if v_trial_ends_at is not null and v_trial_ends_at > now() then
+        v_period_start := date_trunc('day', now() at time zone 'Asia/Seoul') at time zone 'Asia/Seoul';
+        v_free_limit := 5;
+      else
+        v_period_start := date_trunc('month', now() at time zone 'Asia/Seoul') at time zone 'Asia/Seoul';
+        v_free_limit := 10;
+      end if;
+      select count(*) into v_effective_debits from public.usage_ledger d
+      where d.user_id = p_user_id and d.type = 'debit' and d.reason = 'generate'
+        and d.created_at >= v_period_start
+        and not exists (
+          select 1 from public.usage_ledger r
+          where r.user_id = p_user_id and r.type = 'credit'
+            and r.idempotency_key = 'refund:' || d.idempotency_key
+        );
+      v_remaining_after := greatest(0, v_free_limit - v_effective_debits);
+      return jsonb_build_object('ok', true, 'duplicated', true, 'before', v_remaining_after, 'after', v_remaining_after);
+    end if;
+    -- Paid plans: credit_balance is correct
     return jsonb_build_object('ok', true, 'duplicated', true, 'before', v_balance, 'after', v_balance);
   end if;
 
@@ -91,10 +115,19 @@ begin
     insert into public.usage_ledger (user_id, generation_id, type, amount, reason, idempotency_key)
     values (p_user_id, null, 'debit', p_amount, p_reason, p_idempotency_key);
 
+    -- Return count-based remaining (not credit_balance which is unused for free plan)
+    if v_trial_ends_at is not null and v_trial_ends_at > now() then
+      v_free_limit := v_daily_limit;
+    else
+      v_free_limit := v_monthly_limit;
+    end if;
+    v_remaining_before := greatest(0, v_free_limit - v_effective_debits);
+    v_remaining_after  := greatest(0, v_free_limit - v_effective_debits - p_amount);
+
     return jsonb_build_object(
       'ok', true,
-      'before', v_balance,
-      'after', v_balance
+      'before', v_remaining_before,
+      'after', v_remaining_after
     );
   end if;
 

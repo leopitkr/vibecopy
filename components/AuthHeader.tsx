@@ -28,7 +28,7 @@ export function AuthHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  const refreshUser = useCallback(() => {
     fetch("/api/me", { credentials: "include", cache: "no-store" })
       .then((res) => res.json())
       .then((data) => {
@@ -46,6 +46,17 @@ export function AuthHeader() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    refreshUser();
+  }, [refreshUser]);
+
+  // Re-fetch when usage changes (e.g. after generation)
+  useEffect(() => {
+    const handler = () => refreshUser();
+    window.addEventListener("vibecopy:usage-changed", handler);
+    return () => window.removeEventListener("vibecopy:usage-changed", handler);
+  }, [refreshUser]);
 
   // Close menu on outside click
   useEffect(() => {

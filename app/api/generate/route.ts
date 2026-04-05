@@ -396,19 +396,54 @@ export async function POST(request: Request) {
   if (cached?.output_json) {
     const cachedOutput = responseSchema.safeParse(cached.output_json);
     if (cachedOutput.success) {
-      const { data: profileRow } = await supabase
-        .from("users")
-        .select("credit_balance")
-        .eq("id", user.id)
-        .single();
-      const balance = profileRow?.credit_balance ?? 0;
+      // Compute remaining consistently for all plan types
+      let cacheRemaining: number;
+      if (plan === "free") {
+        // Count-based remaining for free/trial users (same logic as /api/me)
+        const nowKST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+        let periodStartUTC: string;
+        let periodLimit: number;
+        if (isTrial) {
+          const startOfTodayKST = new Date(nowKST);
+          startOfTodayKST.setHours(0, 0, 0, 0);
+          periodStartUTC = new Date(startOfTodayKST.getTime() - 9 * 60 * 60 * 1000).toISOString();
+          periodLimit = 5;
+        } else {
+          const startOfMonthKST = new Date(nowKST.getFullYear(), nowKST.getMonth(), 1, 0, 0, 0, 0);
+          periodStartUTC = new Date(startOfMonthKST.getTime() - 9 * 60 * 60 * 1000).toISOString();
+          periodLimit = 10;
+        }
+        const { count: debits } = await supabase
+          .from("usage_ledger")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("type", "debit")
+          .eq("reason", "generate")
+          .gte("created_at", periodStartUTC);
+        const { count: refunds } = await supabase
+          .from("usage_ledger")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("type", "credit")
+          .like("idempotency_key", "refund:%")
+          .gte("created_at", periodStartUTC);
+        const effectiveUsed = Math.max(0, (debits ?? 0) - (refunds ?? 0));
+        cacheRemaining = Math.max(0, periodLimit - effectiveUsed);
+      } else {
+        const { data: profileRow } = await supabase
+          .from("users")
+          .select("credit_balance")
+          .eq("id", user.id)
+          .single();
+        cacheRemaining = profileRow?.credit_balance ?? 0;
+      }
       return NextResponse.json(
         {
           ok: true,
           data: {
             generationId: cached.id,
             output: cachedOutput.data,
-            credits: { before: balance, after: balance },
+            credits: { before: cacheRemaining, after: cacheRemaining },
           },
           cacheHit: true,
         },

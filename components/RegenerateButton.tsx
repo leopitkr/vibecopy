@@ -34,11 +34,11 @@ const ERROR_MESSAGES: Record<string, { title: string; description: string }> = {
   },
   AI_FAILED: {
     title: "일시적인 문제가 발생했습니다",
-    description: "잠시 후 다시 시도해주세요.",
+    description: "크레딧은 차감되지 않았습니다. 잠시 후 다시 시도해주세요.",
   },
   INTERNAL: {
     title: "일시적인 오류가 발생했습니다",
-    description: "잠시 후 다시 시도해주세요.",
+    description: "크레딧은 차감되지 않았습니다. 잠시 후 다시 시도해주세요.",
   },
   RATE_LIMIT_EXCEEDED: {
     title: "요청이 너무 빠릅니다",

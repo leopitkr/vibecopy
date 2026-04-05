@@ -66,6 +66,10 @@ const ERROR_MESSAGES: Record<string, { title: string; description: string }> = {
     title: "입력 내용을 확인해주세요",
     description: "상품 정보를 다시 한번 확인해주세요.",
   },
+  INSUFFICIENT_PRODUCT_INFO: {
+    title: "상품 정보가 부족합니다",
+    description: "상품 특징을 최소 30자 이상 입력해주세요 (예: 소재, 특징, 타겟 고객, 가격, 용량 등)",
+  },
   INPUT_TOO_LONG: {
     title: "입력이 너무 깁니다",
     description: "2000자 이내로 입력해주세요.",
@@ -96,15 +100,15 @@ const ERROR_MESSAGES: Record<string, { title: string; description: string }> = {
   },
   AI_FAILED: {
     title: "일시적인 문제가 발생했습니다",
-    description: "크레딧이 자동으로 환급되었습니다. 잠시 후 다시 시도해주세요.",
+    description: "크레딧은 차감되지 않았습니다 (자동 환급 완료). 잠시 후 다시 시도해주세요.",
   },
   INTERNAL: {
     title: "일시적인 오류가 발생했습니다",
-    description: "크레딧이 자동으로 환급되었습니다. 잠시 후 다시 시도해주세요.",
+    description: "크레딧은 차감되지 않았습니다 (자동 환급 완료). 잠시 후 다시 시도해주세요.",
   },
   SERVER_MISCONFIGURED: {
     title: "서버 설정 오류가 발생했습니다",
-    description: "크레딧이 자동으로 환급되었습니다. 잠시 후 다시 시도해주세요.",
+    description: "크레딧은 차감되지 않았습니다 (자동 환급 완료). 잠시 후 다시 시도해주세요.",
   },
 };
 
@@ -176,8 +180,8 @@ export function GeneratePageClient() {
     };
   }, [loading]);
 
-  const fetchMe = useCallback(async () => {
-    setMeLoading(true);
+  const fetchMe = useCallback(async (silent = false) => {
+    if (!silent) setMeLoading(true);
     try {
       const res = await fetch("/api/me", { credentials: "include" });
       const data = await res.json();
@@ -214,7 +218,7 @@ export function GeneratePageClient() {
       setPlanInfo(null);
       setTrialInfo(null);
     } finally {
-      setMeLoading(false);
+      if (!silent) setMeLoading(false);
     }
   }, []);
 
@@ -281,7 +285,11 @@ export function GeneratePageClient() {
       if (res.ok) {
         setResult(res.data.output);
         setCreditsAfter(res.data.credits.after);
-        setCreditsLeft(res.data.credits.after);
+        // Refresh all usage state from /api/me to keep planInfo, creditsLeft,
+        // and CreditBadge in sync (credits.after alone is not enough for
+        // count-based free plans). Silent=true to avoid flashing the UI.
+        fetchMe(true);
+        window.dispatchEvent(new Event("vibecopy:usage-changed"));
         showSuccess("카피가 성공적으로 생성되었습니다");
         return;
       }
@@ -301,7 +309,7 @@ export function GeneratePageClient() {
       }
       setError(err);
     },
-    [getInputValue, sourceType, channel, vibe, isLoggedIn, showSuccess, router]
+    [getInputValue, sourceType, channel, vibe, isLoggedIn, showSuccess, router, fetchMe]
   );
 
   const onSubmit = useCallback(
@@ -921,8 +929,8 @@ export function GeneratePageClient() {
 
               {/* Credits & feedback */}
               <div className="generate-footer-info">
-                {creditsAfter !== null && (
-                  <p className="generate-credits-info">남은 크레딧: {creditsAfter}</p>
+                {creditsLeft !== null && (
+                  <p className="generate-credits-info">남은 횟수: {creditsLeft}회</p>
                 )}
                 <p>
                   <Link href="/feedback" className="generate-feedback-link">
