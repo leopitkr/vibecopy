@@ -75,16 +75,20 @@ const ERROR_MESSAGES: Record<string, { title: string; description: string }> = {
     description: "로그인 후 다시 시도해주세요.",
   },
   INSUFFICIENT_CREDITS: {
-    title: "크레딧이 부족합니다",
-    description: "Standard 플랜으로 월 100회까지 프리미엄 AI로 생성할 수 있어요.",
+    title: "��레딧이 부족합니��",
+    description: "Standard 플랜으로 월 300회까지 프리미엄 AI(gpt-4o)로 생성할 수 있어요.",
   },
   IDEMPOTENCY_CONFLICT: {
     title: "이미 처리된 요청입니다",
     description: "잠시 후 다시 시도해주세요.",
   },
   DAILY_LIMIT_EXCEEDED: {
-    title: "오늘 사용량을 모두 사용했어요",
-    description: "Standard 플랜으로 월 100회까지 프리미엄 AI로 생성할 수 있어요.",
+    title: "오늘 체험 생성 5회를 모두 사용했어요",
+    description: "Standard로 업그레이드하면 월 300회까지 바로 계속 사용할 수 있습니다.",
+  },
+  MONTHLY_LIMIT_EXCEEDED: {
+    title: "이번 달 무료 10회를 모두 사용했어요",
+    description: "Standard로 업그레이드하면 월 300회 + 고급 모델(gpt-4o)로 계속 생성할 수 ���습니다.",
   },
   RATE_LIMIT_EXCEEDED: {
     title: "요청이 너무 빠릅니다",
@@ -282,7 +286,7 @@ export function GeneratePageClient() {
         router.push("/login?returnUrl=/generate");
         return;
       }
-      if (err.code === "INSUFFICIENT_CREDITS" || err.code === "DAILY_LIMIT_EXCEEDED") {
+      if (err.code === "INSUFFICIENT_CREDITS" || err.code === "DAILY_LIMIT_EXCEEDED" || err.code === "MONTHLY_LIMIT_EXCEEDED") {
         setError(err);
         setUpgradeModal(true);
         return;
@@ -368,7 +372,7 @@ export function GeneratePageClient() {
           ? "입력이 2000자를 초과하면 생성할 수 없습니다."
           : "상품 정보를 입력해주세요."
         : creditsLeft !== null && creditsLeft <= 0
-          ? "오늘 무료 사용 횟수를 모두 사용했어요."
+          ? "사용 횟수를 모두 사용했어요."
           : "준비 중..."
     : null;
 
@@ -429,12 +433,15 @@ export function GeneratePageClient() {
         >
           <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
             <p style={{ fontWeight: 600, fontSize: "0.95rem", margin: 0 }}>
-              무료 체험이 종료됐어요
+              체험 기간이 종료됐어요
             </p>
             <p style={{ fontSize: "0.85rem", opacity: 0.9, margin: 0, lineHeight: 1.5 }}>
-              이제 하루 1회 무료로 사용할 수 있어요.
+              지금부터 월 10회 무료로 사용할 수 있어요 (기본 AI).
               <br />
-              더 자주 생성하려면 업그레이드하세요.
+              체험 때 느꼈던 고급 AI 품질을 계속 쓰려면 업그레이드하세요.
+            </p>
+            <p style={{ fontSize: "0.8rem", opacity: 0.75, margin: 0 }}>
+              Standard 하루 약 633원 · 월 300회 · gpt-4o
             </p>
             <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.25rem" }}>
               <Link
@@ -447,7 +454,7 @@ export function GeneratePageClient() {
                   padding: "0.4rem 1rem",
                 }}
               >
-                Standard 플랜 보기
+                지금 업그레이드
               </Link>
               <button
                 type="button"
@@ -479,27 +486,20 @@ export function GeneratePageClient() {
           aria-labelledby="upgrade-modal-title"
         >
           <div className="generate-modal">
-            {userPlan === "free" || error?.code === "DAILY_LIMIT_EXCEEDED" ? (
+            {error?.code === "DAILY_LIMIT_EXCEEDED" ? (
               <>
                 <h2 id="upgrade-modal-title">
-                  오늘 무료 생성을 모두 사용했어요
+                  오늘 체험 생성 5회를 모두 사용했어요
                 </h2>
-                {trialInfo?.active ? (
-                  <p>
-                    내일 다시 3회 무료로 사용하거나,
-                    <br />
-                    Standard 플랜으로 월 100회까지 프리미엄 AI로 생성할 수 있어요.
-                  </p>
-                ) : (
-                  <p>
-                    내일 다시 1회 무료로 사용하거나,
-                    <br />
-                    Standard 플랜으로 월 100회까지 프리미엄 AI로 생성할 수 있어요.
-                  </p>
-                )}
+                <p>
+                  지금 업그레이드하면 <strong>바로 이어서 생성</strong>할 수 있습니다.
+                </p>
+                <p className="generate-modal-value">
+                  Standard 월 19,000원 · 하루 약 633원으로 월 300회 + 고급 AI(gpt-4o)
+                </p>
                 <div className="generate-modal-buttons">
                   <Link href="/pricing" className="btn btn-primary">
-                    Standard 플랜 보기
+                    지금 바로 업그레이드
                   </Link>
                   <button
                     type="button"
@@ -507,6 +507,56 @@ export function GeneratePageClient() {
                     className="btn btn-ghost"
                   >
                     내일 다시 올게요
+                  </button>
+                </div>
+              </>
+            ) : error?.code === "MONTHLY_LIMIT_EXCEEDED" ? (
+              <>
+                <h2 id="upgrade-modal-title">
+                  이번 달 무료 10회를 모두 사용했어요
+                </h2>
+                <p>
+                  지금 업그레이드하면 <strong>바로 이어서 생성</strong>할 수 있습니다.
+                  <br />
+                  고급 모델(gpt-4o)로 더 높은 품질의 카피를 만들어보세요.
+                </p>
+                <p className="generate-modal-value">
+                  Standard 월 19,000원 · 하루 약 633원으로 월 300회
+                </p>
+                <div className="generate-modal-buttons">
+                  <Link href="/pricing" className="btn btn-primary">
+                    지금 바로 업그레이드
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setUpgradeModal(false)}
+                    className="btn btn-ghost"
+                  >
+                    다음 달까지 기다릴게요
+                  </button>
+                </div>
+              </>
+            ) : error?.code === "INSUFFICIENT_CREDITS" && userPlan === "standard" ? (
+              <>
+                <h2 id="upgrade-modal-title">
+                  이번 달 300회를 모두 사용했어요
+                </h2>
+                <p>
+                  Pro 플랜으로 업그레이드하면 <strong>월 1,000회</strong>까지 바로 이어서 사용할 수 있습니다.
+                </p>
+                <p className="generate-modal-value">
+                  Pro 월 49,000원 · 브랜드 보이스 저장 · CSV 다운로드 · A/B 변형
+                </p>
+                <div className="generate-modal-buttons">
+                  <Link href="/pricing" className="btn btn-primary">
+                    Pro로 업그레이드
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setUpgradeModal(false)}
+                    className="btn btn-ghost"
+                  >
+                    다음 결제일까지 기다릴게요
                   </button>
                 </div>
               </>
@@ -563,6 +613,58 @@ export function GeneratePageClient() {
       <main className="generate-main">
         <div className="generate-container">
           <form onSubmit={onSubmit} className="generate-form">
+            {/* Trial D-day Badge */}
+            {isLoggedIn && trialInfo?.active && trialInfo.ends_at && (() => {
+              const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+              const end = new Date(new Date(trialInfo.ends_at).toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+              now.setHours(0, 0, 0, 0);
+              end.setHours(0, 0, 0, 0);
+              const daysLeft = Math.max(0, Math.round((end.getTime() - now.getTime()) / 86400000));
+              const isUrgent = daysLeft <= 2;
+              return (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    padding: "0.625rem 1rem",
+                    borderRadius: "0.75rem",
+                    fontSize: "0.85rem",
+                    fontWeight: 500,
+                    background: isUrgent
+                      ? "rgba(251, 146, 60, 0.12)"
+                      : "rgba(99, 102, 241, 0.1)",
+                    color: isUrgent ? "var(--orange-400, #fb923c)" : "var(--indigo-400, #818cf8)",
+                    border: `1px solid ${isUrgent ? "rgba(251, 146, 60, 0.25)" : "rgba(99, 102, 241, 0.2)"}`,
+                  }}
+                >
+                  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ flexShrink: 0 }}>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>
+                    {daysLeft === 0
+                      ? "오늘 체험이 종료됩니다"
+                      : `체험 종료까지 ${daysLeft}일`}
+                  </span>
+                  {isUrgent && (
+                    <Link
+                      href="/pricing"
+                      style={{
+                        marginLeft: "auto",
+                        fontSize: "0.8rem",
+                        fontWeight: 600,
+                        color: "var(--indigo-400, #818cf8)",
+                        textDecoration: "underline",
+                        textUnderlineOffset: "2px",
+                      }}
+                    >
+                      업그레이드
+                    </Link>
+                  )}
+                </div>
+              );
+            })()}
+
             {/* Unified Input Card */}
             <div className="generate-card">
               {/* Source Type Toggle */}
@@ -601,6 +703,17 @@ export function GeneratePageClient() {
                         예시로 해보기
                       </button>
                     </div>
+                    <p style={{
+                      fontSize: "0.8125rem",
+                      color: "var(--text-muted)",
+                      margin: "0 0 0.5rem",
+                      lineHeight: 1.5,
+                    }}>
+                      상품 URL 또는 특징 3줄만 입력해보세요.{" "}
+                      <span style={{ opacity: 0.7 }}>
+                        예: &quot;저자극 선크림 / 백탁 없음 / 민감성 피부용&quot;
+                      </span>
+                    </p>
                     <textarea
                       id="product-info"
                       value={textValue}
@@ -730,13 +843,13 @@ export function GeneratePageClient() {
 
             {/* Submit Button */}
             <div className="generate-submit-section">
-              {isLoggedIn && planInfo && planInfo.type !== "unlimited" && (
+              {isLoggedIn && planInfo && (
                 <p className={`generate-usage-hint ${planInfo.remaining <= 0 ? "empty" : planInfo.remaining === 1 ? "low" : planInfo.remaining === 2 ? "warn" : ""}`}>
                   {trialInfo?.active
-                    ? `무료 체험 ${getTrialDaysLeft(trialInfo.ends_at)}일 남음 · 오늘 ${planInfo.remaining}회 남음`
+                    ? `무료 체험 ${getTrialDaysLeft(trialInfo.ends_at)}일 남음 · 오늘 ${planInfo.remaining}/${planInfo.limit}회 남음`
                     : planInfo.type === "daily"
-                      ? `오늘 무료 사용 ${planInfo.remaining}회 남음`
-                      : `이번 달 ${planInfo.remaining}회 남음`}
+                      ? `오늘 ${planInfo.remaining}/${planInfo.limit}회 남음`
+                      : `이번 달 ${planInfo.remaining}/${planInfo.limit}회 남음`}
                 </p>
               )}
               <button
@@ -753,7 +866,7 @@ export function GeneratePageClient() {
                 </p>
               ) : !isLoggedIn ? (
                 <p className="generate-submit-hint">
-                  가입 즉시 7일간 하루 3회 프리미엄 AI 무료 체험
+                  가입 즉시 7일간 하루 5회 프리미엄 AI(gpt-4o) 무료 체험
                 </p>
               ) : null}
             </div>

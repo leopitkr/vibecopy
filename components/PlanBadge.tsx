@@ -2,6 +2,7 @@
 
 const PLAN_LABELS: Record<string, string> = {
   free: "Free",
+  trial: "무료 체험",
   standard: "Standard",
   pro: "Pro",
 };

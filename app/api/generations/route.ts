@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { HISTORY_LIMITS, type PlanType } from "@/lib/constants/limits";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
@@ -31,12 +32,27 @@ export async function GET(request: Request) {
     );
   }
 
+  // Fetch user plan for history limit
+  const { data: profile } = await supabase
+    .from("users")
+    .select("plan")
+    .eq("id", user.id)
+    .single();
+  const userPlan = ((profile?.plan as PlanType) || "free") as PlanType;
+  const historyMax = HISTORY_LIMITS[userPlan]; // null = unlimited
+
   const { searchParams } = new URL(request.url);
-  const limit = Math.min(
+  const requestedLimit = Math.min(
     Math.max(1, parseInt(searchParams.get("limit") ?? String(DEFAULT_LIMIT), 10) || DEFAULT_LIMIT),
     MAX_LIMIT
   );
+  const limit = historyMax ? Math.min(requestedLimit, historyMax) : requestedLimit;
   const cursor = searchParams.get("cursor"); // opaque: "created_at|id"
+
+  // Track total items loaded (from offset param for free plan cap)
+  const offset = parseInt(searchParams.get("offset") ?? "0", 10) || 0;
+  const totalAfterLoad = offset + limit;
+  const capReached = historyMax ? totalAfterLoad >= historyMax : false;
 
   let query = supabase
     .from("generations")
@@ -90,8 +106,15 @@ export async function GET(request: Request) {
     };
   });
 
+  // If free plan cap reached, suppress nextCursor to prevent further loading
+  const effectiveNextCursor = capReached ? null : nextCursor;
+
   return NextResponse.json({
     ok: true,
-    data: { items: result, nextCursor },
+    data: {
+      items: result,
+      nextCursor: effectiveNextCursor,
+      ...(historyMax ? { historyLimit: historyMax, historyLimitReached: capReached } : {}),
+    },
   });
 }

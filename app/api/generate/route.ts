@@ -464,7 +464,7 @@ export async function POST(request: Request) {
           ...logPayload,
           status: 429,
           error_code: "DAILY_LIMIT_EXCEEDED",
-          message: "Free plan daily limit reached",
+          message: "Trial daily limit reached (5/day)",
         });
       } catch {
         /* best-effort */
@@ -473,7 +473,28 @@ export async function POST(request: Request) {
         {
           error: {
             code: "DAILY_LIMIT_EXCEEDED",
-            message: "Free plan daily limit reached",
+            message: "오늘 체험 생성 5회를 모두 사용했습니다.",
+          },
+        },
+        { status: 429 }
+      );
+    }
+    if (debitResult.error === "MONTHLY_LIMIT_EXCEEDED") {
+      try {
+        await writeErrorLog(supabase, {
+          ...logPayload,
+          status: 429,
+          error_code: "MONTHLY_LIMIT_EXCEEDED",
+          message: "Free plan monthly limit reached (10/month)",
+        });
+      } catch {
+        /* best-effort */
+      }
+      return NextResponse.json(
+        {
+          error: {
+            code: "MONTHLY_LIMIT_EXCEEDED",
+            message: "이번 달 무료 10회를 모두 사���했습니다.",
           },
         },
         { status: 429 }
@@ -582,6 +603,17 @@ export async function POST(request: Request) {
     openai = getOpenAIClient();
     console.log("[generate] step 3 getOpenAIClient ok");
   } catch (e) {
+    // Refund the debit since we can't proceed with generation
+    const refund = await refundCredits(supabase, {
+      userId: user.id,
+      amount: 1,
+      idempotencyKey: idempotency_key,
+    });
+    if (!refund.ok) {
+      console.error("[generate] refund failed after OpenAI init error:", refund.error);
+    } else {
+      console.log("[generate] refunded credit after OpenAI init failure");
+    }
     if (e instanceof EnvError) {
       console.error("[generate] SERVER_MISCONFIGURED at getOpenAIClient:", e.message);
       try {

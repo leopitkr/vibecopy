@@ -136,44 +136,51 @@ export default function LandingPage() {
           <div className="hero-inner">
             <div className="badge">
               <span className="badge-dot" />
-              셀러 전용 판매글 생성기
+              AI 판매글 자동 생성
             </div>
             <h1>
-              상품 정보 하나로
+              상품 정보 하나 넣으면
               <br />
-              <span className="text-gradient">채널에 딱 맞는 판매글이 나옵니다</span>
+              <span className="text-gradient">팔리는 판매글이 바로 나옵니다</span>
             </h1>
-            <p>
+            <p className="hero-sub-main">
+              스마트스토어·쿠팡·SNS·숏폼까지
+              <br />
+              채널에 맞는 카피를 자동 생성
+            </p>
+            <p className="hero-sub-detail">
               스마트스토어 상품명, 쿠팡 타이틀, SNS 캡션, 숏폼 스크립트까지
               <br />
-              — 채널별로 필요한 카피만, 톤까지 맞춰서.
+              채널별 최적화 + 톤 자동 적용
             </p>
             <div className="hero-buttons">
-              <Link href="/login?returnUrl=/generate" className="btn btn-primary">
+              <Link href="/login?mode=signup&returnUrl=/generate" className="btn btn-primary">
                 7일 무료 체험 시작하기
               </Link>
               <Link href="#demo" className="btn btn-ghost">
-                결과물 ��리보기
+                결과물 미리보기
               </Link>
             </div>
             <p className="hero-note">
-              가입 즉시 <strong>7일간 하루 3회 프리미엄 AI 무료</strong> · 카드 등록 없이 시작
+              가입 즉시 <strong>7일간, 하루 5회 프리미엄 AI(gpt-4o) 무료 체험</strong>
+              <br />
+              카드 등록 없이 바로 시작
             </p>
           </div>
         </section>
 
         {/* ===== Section 2: Comparison ===== */}
-        {/* Plan SC2: ChatGPT comparison section kills the objection */}
+        {/* Plan SC2: Why general AI falls short — insight-driven comparison */}
         <section>
           <div className="section-inner">
-            <p className="section-label">비교</p>
-            <h2 className="section-title">ChatGPT로 하면 되지 않나요?</h2>
+            <p className="section-hook">일반 AI로는 부족한 이유</p>
+            <h2 className="section-title">왜 결과가 다를까요?</h2>
 
             <table className="compare-table">
               <thead>
                 <tr>
                   <th></th>
-                  <th>ChatGPT</th>
+                  <th>일반 AI</th>
                   <th>VibeCopy</th>
                 </tr>
               </thead>
@@ -189,9 +196,9 @@ export default function LandingPage() {
             </table>
 
             <div className="compare-verdict">
-              ChatGPT는 &ldquo;글 쓰는 AI&rdquo;입니다.
+              일반 AI는 글을 만들어줍니다.
               <br />
-              VibeCopy는 <strong>&ldquo;판매글 패키지를 찍어내는 도구&rdquo;</strong>입니다.
+              VibeCopy는 <strong>바로 팔 수 있는 카피를 만들어줍니다.</strong>
             </div>
           </div>
         </section>
@@ -200,7 +207,7 @@ export default function LandingPage() {
         {/* Plan SC3: Demo shows all 6 output categories with copy buttons */}
         <section id="demo">
           <div className="section-inner">
-            <p className="section-label">결과물</p>
+            <p className="section-hook">클릭 한 번이면 이런 결과가 나옵니다</p>
             <h2 className="section-title">이런 결과물이 30초 만에 나옵니다</h2>
 
             <div className="demo-card">
@@ -318,8 +325,11 @@ export default function LandingPage() {
 
             {/* Mid CTA */}
             <div className="demo-mid-cta">
-              <Link href="/login?returnUrl=/generate" className="btn btn-primary">
-                회원가입하고 내 상품으로 만들어보��� →
+              <Link href="/login?mode=signup&returnUrl=/generate" className="btn btn-primary">
+                7일 무료 체험 시작하기
+              </Link>
+              <Link href="/login?mode=signup&returnUrl=/generate" className="btn btn-ghost" style={{ marginLeft: "0.75rem" }}>
+                내 상품으로 바로 만들어보기 →
               </Link>
             </div>
           </div>
@@ -347,8 +357,12 @@ export default function LandingPage() {
         {/* Plan SC4: Pricing hook with link to /pricing */}
         <section className="cta-section">
           <h2 className="cta-title">지금 상품 정보 하나만 넣어보세요</h2>
-          <p className="cta-sub">가입하면 7일간 하루 3회, 프리미엄 AI로 무료 체험할 수 있습니다.</p>
-          <Link href="/login?returnUrl=/generate" className="btn btn-primary">
+          <p className="cta-sub">
+            7일 동안, 매일 3번
+            <br />
+            프리미엄 AI로 무료 체험 가능합니다
+          </p>
+          <Link href="/login?mode=signup&returnUrl=/generate" className="btn btn-primary">
             7일 무료 체험 시작하기
           </Link>
           <br />

@@ -213,6 +213,30 @@
   margin: 0 auto !important;
 }
 
+.landing-page .hero-sub-main {
+  font-size: 1.35rem !important;
+  color: var(--text-primary) !important;
+  font-weight: 600 !important;
+  max-width: 600px !important;
+  margin: 0 auto 1rem !important;
+  line-height: 1.8 !important;
+}
+
+.landing-page .hero-sub-detail {
+  font-size: 1.1rem !important;
+  color: var(--text-secondary) !important;
+  max-width: 600px !important;
+  margin: 0 auto 3rem !important;
+  line-height: 1.8 !important;
+}
+
+.landing-page .section-hook {
+  text-align: center !important;
+  font-size: 0.95rem !important;
+  color: var(--text-muted) !important;
+  margin-bottom: 0.5rem !important;
+}
+
 .landing-page .section-label {
   text-align: center !important;
   font-size: 0.75rem !important;
@@ -756,26 +780,27 @@
 .landing-page .auth-content {
   flex: 1 !important;
   display: flex !important;
-  align-items: flex-start !important;
+  align-items: center !important;
   justify-content: center !important;
-  padding: 8rem 2rem 4rem !important;
+  padding: 6rem 2rem 4rem !important;
 }
 
 .landing-page .auth-box {
   width: 100% !important;
-  max-width: 420px !important;
+  max-width: 480px !important;
 }
 
 .landing-page .auth-title {
-  font-size: 1.75rem !important;
+  font-size: 2rem !important;
   font-weight: 700 !important;
   color: white !important;
-  margin-bottom: 0.5rem !important;
+  margin-bottom: 0.75rem !important;
 }
 
 .landing-page .auth-subtitle {
-  font-size: 0.9375rem !important;
+  font-size: 1rem !important;
   color: var(--text-secondary) !important;
+  margin-bottom: 0.5rem !important;
 }
 
 .landing-page .auth-subtitle a {
@@ -873,7 +898,8 @@
 .landing-page .social-login-section {
   display: flex !important;
   flex-direction: column !important;
-  gap: 0.75rem !important;
+  gap: 1rem !important;
+  margin-top: 2.5rem !important;
   margin-bottom: 1.5rem !important;
 }
 
@@ -881,11 +907,11 @@
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 0.625rem !important;
+  gap: 0.75rem !important;
   width: 100% !important;
-  padding: 0.75rem 1rem !important;
-  border-radius: 0.75rem !important;
-  font-size: 0.9375rem !important;
+  padding: 1rem 1.25rem !important;
+  border-radius: 0.875rem !important;
+  font-size: 1rem !important;
   font-weight: 600 !important;
   cursor: pointer !important;
   transition: opacity 0.2s !important;
@@ -1197,6 +1223,27 @@
   color: var(--text-muted) !important;
 }
 
+.landing-page .generate-usage-hint {
+  text-align: center !important;
+  font-size: 0.8125rem !important;
+  font-weight: 500 !important;
+  color: var(--text-muted) !important;
+}
+
+.landing-page .generate-usage-hint.warn {
+  color: #fbbf24 !important;
+}
+
+.landing-page .generate-usage-hint.low {
+  color: #fb923c !important;
+  font-weight: 600 !important;
+}
+
+.landing-page .generate-usage-hint.empty {
+  color: var(--red-400) !important;
+  font-weight: 600 !important;
+}
+
 /* Error Message */
 .landing-page .generate-error {
   padding: 1.25rem !important;
@@ -1387,6 +1434,18 @@
   color: var(--text-muted) !important;
   list-style: none !important;
   padding: 0 !important;
+}
+
+.landing-page .generate-modal-value {
+  margin-top: 0.75rem !important;
+  padding: 0.625rem 0.875rem !important;
+  border-radius: 0.625rem !important;
+  background: rgba(99, 102, 241, 0.1) !important;
+  border: 1px solid rgba(99, 102, 241, 0.2) !important;
+  font-size: 0.8125rem !important;
+  color: var(--indigo-400) !important;
+  font-weight: 500 !important;
+  line-height: 1.5 !important;
 }
 
 .landing-page .generate-modal-buttons {
@@ -1755,6 +1814,16 @@
   gap: 0.5rem !important;
 }
 
+.landing-page .credit-badge-link {
+  text-decoration: none !important;
+  cursor: pointer !important;
+  transition: opacity 0.2s !important;
+}
+
+.landing-page .credit-badge-link:hover {
+  opacity: 0.8 !important;
+}
+
 .landing-page .credit-badge {
   display: inline-flex !important;
   align-items: center !important;
@@ -1769,10 +1838,16 @@
   white-space: nowrap !important;
 }
 
-.landing-page .credit-badge.low {
+.landing-page .credit-badge.warn {
   background: rgba(251, 191, 36, 0.08) !important;
   border-color: rgba(251, 191, 36, 0.2) !important;
   color: #fbbf24 !important;
+}
+
+.landing-page .credit-badge.low {
+  background: rgba(251, 146, 36, 0.1) !important;
+  border-color: rgba(251, 146, 36, 0.25) !important;
+  color: #fb923c !important;
 }
 
 .landing-page .credit-badge.empty {

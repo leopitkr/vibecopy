@@ -52,33 +52,57 @@ export default function PricingPage() {
         </section>
 
         <section style={{ paddingTop: 0 }}>
-          <div className="section-inner" style={{ maxWidth: "1000px" }}>
-            <div className="pricing-grid">
+          <div className="section-inner" style={{ maxWidth: "1100px" }}>
+            <div className="pricing-grid" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
               {/* Free Plan */}
               <div className="pricing-card">
                 <h2 className="pricing-tier">Free</h2>
                 <p className="pricing-price">0원</p>
-                <p className="pricing-period">하루 1회 생성</p>
+                <p className="pricing-period">월 10회 생성</p>
                 <ul className="pricing-features">
-                  <li>
-                    <span className="check-icon">✓</span>
-                    전체 채널 지원
-                  </li>
                   <li>
                     <span className="check-icon">✓</span>
                     기본 AI (gpt-4o-mini)
                   </li>
                   <li>
                     <span className="check-icon">✓</span>
-                    생성 기록 저장
+                    전체 채널 지원
                   </li>
                   <li>
                     <span className="check-icon">✓</span>
-                    가입 후 7일간 프리미엄 체험
+                    생성 기록 최근 30개
                   </li>
                 </ul>
                 <Link href="/generate" className="btn btn-ghost" style={{ width: "100%", marginTop: "auto" }}>
                   무료로 시작하기
+                </Link>
+              </div>
+
+              {/* Trial Info */}
+              <div className="pricing-card" style={{ borderColor: "var(--indigo-500, #6366f1)", borderWidth: "1px" }}>
+                <h2 className="pricing-tier">Trial</h2>
+                <p className="pricing-price">0원</p>
+                <p className="pricing-period">가입 후 7일</p>
+                <ul className="pricing-features">
+                  <li>
+                    <span className="check-icon check-icon-featured">✓</span>
+                    하루 5회 생성
+                  </li>
+                  <li>
+                    <span className="check-icon check-icon-featured">✓</span>
+                    프리미엄 AI (gpt-4o)
+                  </li>
+                  <li>
+                    <span className="check-icon check-icon-featured">✓</span>
+                    모든 바이브 + 채널 오픈
+                  </li>
+                  <li>
+                    <span className="check-icon check-icon-featured">✓</span>
+                    체험 종료 후 Free 전환
+                  </li>
+                </ul>
+                <Link href="/login?intent=signup&returnUrl=/generate" className="btn btn-ghost" style={{ width: "100%", marginTop: "auto", borderColor: "var(--indigo-500, #6366f1)", color: "var(--indigo-400, #818cf8)" }}>
+                  7일 무료 체험
                 </Link>
               </div>
 
@@ -89,7 +113,7 @@ export default function PricingPage() {
                 <p className="pricing-price">
                   19,000원<span className="pricing-unit">/월</span>
                 </p>
-                <p className="pricing-period">월 100회 생성</p>
+                <p className="pricing-period">월 300회 생성</p>
                 <ul className="pricing-features">
                   <li>
                     <span className="check-icon check-icon-featured">✓</span>
@@ -101,7 +125,11 @@ export default function PricingPage() {
                   </li>
                   <li>
                     <span className="check-icon check-icon-featured">✓</span>
-                    히스토리 저장
+                    히스토리 무제한 저장
+                  </li>
+                  <li>
+                    <span className="check-icon check-icon-featured">✓</span>
+                    프리셋 저장 <span style={{ fontSize: "0.7em", opacity: 0.6 }}>준비중</span>
                   </li>
                 </ul>
                 <button
@@ -121,7 +149,7 @@ export default function PricingPage() {
                 <p className="pricing-price">
                   49,000원<span className="pricing-unit">/월</span>
                 </p>
-                <p className="pricing-period">무제한 생성</p>
+                <p className="pricing-period">월 1,000회 생성</p>
                 <ul className="pricing-features">
                   <li>
                     <span className="check-icon">✓</span>
@@ -138,6 +166,10 @@ export default function PricingPage() {
                   <li>
                     <span className="check-icon">✓</span>
                     CSV 다운로드 <span style={{ fontSize: "0.7em", opacity: 0.6 }}>준비중</span>
+                  </li>
+                  <li>
+                    <span className="check-icon">✓</span>
+                    A/B 변형 기능 <span style={{ fontSize: "0.7em", opacity: 0.6 }}>준비중</span>
                   </li>
                 </ul>
                 <button

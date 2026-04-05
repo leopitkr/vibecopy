@@ -22,11 +22,15 @@ type RegenerateButtonProps = {
 const ERROR_MESSAGES: Record<string, { title: string; description: string }> = {
   INSUFFICIENT_CREDITS: {
     title: "크레딧이 부족합니다",
-    description: "플랜을 업그레이드하면 더 많이 생성할 수 있습니다.",
+    description: "Standard 플랜으로 월 300회까지 프리미��� AI로 생성할 수 있어요.",
   },
   DAILY_LIMIT_EXCEEDED: {
-    title: "오늘 사용량을 모두 사용했습니다",
-    description: "내일 다시 시도하거나 플랜을 업그레이드해주세요.",
+    title: "오늘 체험 생성 5회를 모두 사용했어요",
+    description: "Standard로 업그레이드하면 월 300회까지 바로 계속 사용할 수 있습니다.",
+  },
+  MONTHLY_LIMIT_EXCEEDED: {
+    title: "이번 달 무료 10회를 모두 사용했어요",
+    description: "Standard로 업그레이드하면 월 300회 + 고급 모델(gpt-4o)로 생성할 수 있습니다.",
   },
   AI_FAILED: {
     title: "일시적인 문제가 발생했습니다",
@@ -200,7 +204,7 @@ export function RegenerateButton({
       onSuccess?.(res.data.output);
       return;
     }
-    if (res.error.code === "INSUFFICIENT_CREDITS" || res.error.code === "DAILY_LIMIT_EXCEEDED") {
+    if (res.error.code === "INSUFFICIENT_CREDITS" || res.error.code === "DAILY_LIMIT_EXCEEDED" || res.error.code === "MONTHLY_LIMIT_EXCEEDED") {
       setShowUpgrade(true);
       return;
     }
@@ -286,10 +290,10 @@ export function RegenerateButton({
             </div>
             <div style={styles.upgradeTextWrap}>
               <p style={styles.upgradeTitle}>
-                오늘 생성 가능 횟수를 모두 사용했어요
+                사용 가능 횟수를 모두 사용했어요
               </p>
               <p style={styles.upgradeDesc}>
-                Standard 플랜으로 월 100회까지 프리미엄 AI로 생성할 수 있어요.
+                Standard 플랜으로 월 300회까지 프리미엄 AI(gpt-4o)로 생성할 수 있어요.
               </p>
               <div style={styles.upgradeButtons}>
                 <Link href="/pricing" style={styles.upgradePrimaryBtn}>

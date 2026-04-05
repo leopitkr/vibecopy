@@ -4,11 +4,12 @@
  * Idempotency: usage_ledger has unique(user_id, idempotency_key). A duplicate
  * key on debit returns { ok: true, duplicated: true } without inserting again
  * (no double charge). Refund uses key "refund:"||original_key so one refund per
- * original request (tech_design_vibecopy.md §8.3, §12.2).
+ * original request.
  *
- * Daily limit: Free plan is 3 generations per day (VibeCopy_PRD.md §3.3 Free).
- * Implemented by counting today's debit entries (reason='generate') in
- * debit_credits RPC; DAILY_LIMIT_EXCEEDED returned before inserting.
+ * Limit enforcement (server-only, in debit_credits RPC):
+ *   Trial (7-day)       = 5/day  (count-based, KST)
+ *   Free  (post-trial)  = 10/month (count-based, KST)
+ *   Standard/Pro        = credit_balance based
  *
  * All mutations run in Postgres transactions via RPC (debit_credits,
  * refund_credits). Caller must use Supabase client with auth.uid() = userId.
@@ -25,6 +26,7 @@ export type DebitResult =
       error:
         | "INSUFFICIENT_CREDITS"
         | "DAILY_LIMIT_EXCEEDED"
+        | "MONTHLY_LIMIT_EXCEEDED"
         | "IDEMPOTENCY_CONFLICT"
         | "UNAUTHORIZED"
         | "BAD_REQUEST";
@@ -36,7 +38,10 @@ export type RefundResult =
 
 /**
  * Debit credits atomically. Checks idempotency first; if key exists returns
- * duplicated without charging. Enforces free-plan daily limit (3/day).
+ * duplicated without charging. Enforces:
+ *   - Trial: 5/day (count-based)
+ *   - Free: 10/month (count-based)
+ *   - Standard/Pro: credit_balance check
  */
 export async function debitCredits(
   supabase: SupabaseClient,
@@ -70,6 +75,7 @@ export async function debitCredits(
     if (
       code === "INSUFFICIENT_CREDITS" ||
       code === "DAILY_LIMIT_EXCEEDED" ||
+      code === "MONTHLY_LIMIT_EXCEEDED" ||
       code === "UNAUTHORIZED" ||
       code === "BAD_REQUEST"
     ) {

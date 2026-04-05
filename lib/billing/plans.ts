@@ -1,5 +1,6 @@
 /**
- * Plan ↔ Stripe Price ID mapping and credit rules (VibeCopy_PRD §3.3, tech_design).
+ * Plan <-> Stripe Price ID mapping and credit rules.
+ * Monthly credits are the source of truth for paid plan resets (invoice.paid webhook).
  */
 
 import { getServerEnv } from "@/lib/env/server";
@@ -13,9 +14,9 @@ export function getPlanPriceMap(): Record<"standard" | "pro", string | undefined
 }
 
 export const PLAN_CREDITS: Record<"free" | "standard" | "pro", number> = {
-  free: 0,
-  standard: 100,
-  pro: 999999,
+  free: 10,
+  standard: 300,
+  pro: 1_000,
 };
 
 export type PlanType = "free" | "standard" | "pro";

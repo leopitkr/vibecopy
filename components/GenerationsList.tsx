@@ -302,6 +302,7 @@ export function GenerationsList() {
   const [detail, setDetail] = useState<GenerationDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [historyLimitReached, setHistoryLimitReached] = useState(false);
 
   const fetchList = useCallback(async (cursor?: string | null) => {
     setLoading(true);
@@ -316,6 +317,7 @@ export function GenerationsList() {
       if (data?.data?.items) {
         setItems(data.data.items);
         setNextCursor(data.data.nextCursor ?? null);
+        if (data.data.historyLimitReached) setHistoryLimitReached(true);
       }
     } catch {
       setItems([]);
@@ -343,6 +345,7 @@ export function GenerationsList() {
       if (data?.data?.items?.length) {
         setItems((prev) => [...prev, ...data.data.items]);
         setNextCursor(data.data.nextCursor ?? null);
+        if (data.data.historyLimitReached) setHistoryLimitReached(true);
       }
     } catch {
       // 에러 시 무시 (기존 목록 유지)
@@ -413,6 +416,22 @@ export function GenerationsList() {
 
   return (
     <>
+      {/* 히스토리 재사용 유도 */}
+      <div style={{
+        padding: "0.875rem 1.5rem",
+        display: "flex",
+        alignItems: "center",
+        gap: "0.5rem",
+        fontSize: "0.8125rem",
+        color: "var(--text-secondary)",
+        borderBottom: "1px solid var(--border-color)",
+        background: "rgba(99, 102, 241, 0.04)",
+      }}>
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ flexShrink: 0, color: "var(--indigo-400)" }}>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        <span>잘 나온 카피를 눌러서 복사하거나 다른 바이브로 다시 만들어보세요</span>
+      </div>
       <div>
         {items.map((item, index) => (
           <button
@@ -482,6 +501,27 @@ export function GenerationsList() {
               "더 보기"
             )}
           </button>
+        </div>
+      )}
+
+      {/* Free plan history limit notice */}
+      {historyLimitReached && !nextCursor && (
+        <div style={{
+          padding: "1.25rem 1.5rem",
+          textAlign: "center",
+          borderTop: "1px solid var(--border-color)",
+          background: "rgba(99, 102, 241, 0.05)",
+        }}>
+          <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", margin: "0 0 0.75rem" }}>
+            무료 플랜은 최근 30개 기록만 볼 수 있습니다
+          </p>
+          <Link href="/pricing" style={{
+            ...styles.btnPrimary,
+            fontSize: "0.8125rem",
+            padding: "0.5rem 1rem",
+          }}>
+            Standard로 업그레이드하면 전체 기록 보기
+          </Link>
         </div>
       )}
 

@@ -79,9 +79,10 @@ export default function GuidePage() {
             <div className="content-block">
               <h2>크레딧 정책</h2>
               <ul>
-                <li><strong>Free</strong> — 하루 3회 생성 제한.</li>
-                <li><strong>Standard</strong> — 월 500 크레딧 (결제일 기준 리셋).</li>
-                <li><strong>Pro</strong> — 무제한 생성.</li>
+                <li><strong>Free</strong> — 월 10회 생성 (gpt-4o-mini).</li>
+                <li><strong>Trial</strong> — 가입 후 7일간 하루 5회 (gpt-4o).</li>
+                <li><strong>Standard</strong> — 월 300회 (gpt-4o, 19,000원/월).</li>
+                <li><strong>Pro</strong> — 월 1,000회 (gpt-4o, 49,000원/월).</li>
               </ul>
               <p style={{ marginTop: "0.75rem" }}>
                 자세한 요금은 <Link href="/pricing" style={{ color: "var(--indigo-400)" }}>요금제</Link>에서 확인하세요.

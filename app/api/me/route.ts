@@ -70,47 +70,93 @@ export async function GET(request: Request) {
     );
   }
 
-  // Build plan info for the response
-  const plan = profile.plan as PlanType;
+  const plan = (profile.plan as PlanType) || "free";
   const planConfig = PLAN_LIMITS[plan];
 
   // Check trial status
-  const isTrial = plan === "free" && profile.trial_ends_at
+  const isTrialActive = plan === "free" && profile.trial_ends_at
     ? new Date(profile.trial_ends_at) > new Date()
     : false;
 
-  let creditBalance = profile.credit_balance;
-  let remaining = creditBalance;
-  let limit = planConfig.monthlyCredits ?? 0;
+  // Compute KST boundaries
+  const nowKST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+  const startOfTodayKST = new Date(nowKST);
+  startOfTodayKST.setHours(0, 0, 0, 0);
+  const startOfMonthKST = new Date(nowKST.getFullYear(), nowKST.getMonth(), 1, 0, 0, 0, 0);
 
-  // Free plan: show remaining daily uses, not DB credit_balance
+  // Convert KST boundaries to UTC ISO for DB query
+  const todayStartUTC = new Date(startOfTodayKST.getTime() - 9 * 60 * 60 * 1000).toISOString();
+  const monthStartUTC = new Date(startOfMonthKST.getTime() - 9 * 60 * 60 * 1000).toISOString();
+
+  let remaining: number;
+  let limit: number;
+  let limitType: PlanLimitType;
+  let effectiveModel: string;
+  let upgradeCta: string | null = null;
+
   if (plan === "free") {
-    // Trial users get 3/day, expired free users get 1/day
-    const dailyLimit = isTrial ? TRIAL_CONFIG.dailyLimit : PLAN_LIMITS.free.dailyLimit!;
-    const startOfToday = new Date();
-    startOfToday.setUTCHours(0, 0, 0, 0);
-    const { count } = await supabase
-      .from("usage_ledger")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .eq("type", "debit")
-      .eq("reason", "generate")
-      .gte("created_at", startOfToday.toISOString());
-    const todayUsed = count ?? 0;
-    creditBalance = Math.max(0, dailyLimit - todayUsed);
-    remaining = creditBalance;
-    limit = dailyLimit;
+    // Helper: count effective debits (debits - refunds) in a period
+    const countEffectiveDebits = async (periodStartUTC: string) => {
+      const { count: debits } = await supabase
+        .from("usage_ledger")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("type", "debit")
+        .eq("reason", "generate")
+        .gte("created_at", periodStartUTC);
+      const { count: refunds } = await supabase
+        .from("usage_ledger")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("type", "credit")
+        .like("idempotency_key", "refund:%")
+        .gte("created_at", periodStartUTC);
+      return Math.max(0, (debits ?? 0) - (refunds ?? 0));
+    };
+
+    if (isTrialActive) {
+      // Trial: 5/day, gpt-4o
+      limit = TRIAL_CONFIG.dailyLimit;
+      limitType = "daily";
+      effectiveModel = TRIAL_CONFIG.model;
+
+      const effectiveUsed = await countEffectiveDebits(todayStartUTC);
+      remaining = Math.max(0, limit - effectiveUsed);
+
+      if (remaining <= 0) upgradeCta = "trial_daily_exhausted";
+      else if (remaining <= 2) upgradeCta = "trial_daily_low";
+    } else {
+      // Free (post-trial): 10/month, gpt-4o-mini
+      limit = PLAN_LIMITS.free.monthlyCredits;
+      limitType = "monthly";
+      effectiveModel = PLAN_LIMITS.free.model;
+
+      const effectiveUsed = await countEffectiveDebits(monthStartUTC);
+      remaining = Math.max(0, limit - effectiveUsed);
+
+      if (remaining <= 0) upgradeCta = "free_monthly_exhausted";
+      else if (remaining <= 2) upgradeCta = "free_monthly_low";
+
+      // If trial just ended, surface it
+      if (profile.trial_ends_at) {
+        upgradeCta = upgradeCta ?? "trial_ended";
+      }
+    }
+  } else {
+    // Standard / Pro: credit_balance based
+    limit = planConfig.monthlyCredits;
+    limitType = "monthly";
+    effectiveModel = planConfig.model;
+    remaining = profile.credit_balance ?? 0;
+
+    if (remaining <= 0) upgradeCta = "paid_monthly_exhausted";
+    else if (remaining <= (plan === "standard" ? 10 : 10)) upgradeCta = "paid_monthly_low";
   }
 
   // Build plan_info for frontend
-  const planInfo: {
-    type: PlanLimitType;
-    label: string;
-    limit: number;
-    remaining: number;
-  } = {
-    type: planConfig.type,
-    label: isTrial ? TRIAL_CONFIG.label : planConfig.labelKo,
+  const planInfo = {
+    type: limitType,
+    label: isTrialActive ? TRIAL_CONFIG.label : planConfig.labelKo,
     limit,
     remaining,
   };
@@ -123,18 +169,26 @@ export async function GET(request: Request) {
       nickname: profile.nickname ?? null,
       social_nickname: user.user_metadata?.full_name || user.user_metadata?.name || null,
       plan: profile.plan,
-      credit_balance: creditBalance,
+      credit_balance: remaining,
       plan_info: planInfo,
       onboarding_completed: profile.onboarding_completed ?? false,
       terms_agreed_at: profile.terms_agreed_at ?? null,
       trial_ends_at: profile.trial_ends_at ?? null,
-      trial: isTrial
+      trial: isTrialActive
         ? {
             active: true,
             ends_at: profile.trial_ends_at,
-            model: "gpt-4o",
+            model: TRIAL_CONFIG.model,
           }
         : null,
+      // Enhanced fields for frontend UX
+      is_trial_active: isTrialActive,
+      effective_model: effectiveModel,
+      monthly_limit: plan === "free" && isTrialActive ? null : limit,
+      daily_trial_limit: isTrialActive ? TRIAL_CONFIG.dailyLimit : null,
+      remaining_monthly_credits: limitType === "monthly" ? remaining : null,
+      remaining_daily_trial_credits: limitType === "daily" ? remaining : null,
+      upgrade_cta_type: upgradeCta,
     },
   });
   res.headers.set("Cache-Control", "no-store, max-age=0");

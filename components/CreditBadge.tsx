@@ -30,18 +30,15 @@ function getTrialDaysLeft(endsAt: string): number {
 
 function getBadgeText(plan: PlanType, planInfo: PlanInfo | null | undefined, trialInfo: TrialInfo | null | undefined, creditsLeft: number | null): string {
   if (planInfo) {
-    if (planInfo.type === "unlimited") {
-      return `Pro · 무제한`;
-    }
-    if (planInfo.type === "daily") {
-      if (trialInfo?.active) {
-        const days = getTrialDaysLeft(trialInfo.ends_at);
-        return `체험 ${days}일 · ${planInfo.remaining}회 남음`;
-      }
-      return `무료 · ${planInfo.remaining}회 남음`;
+    if (planInfo.type === "daily" && trialInfo?.active) {
+      const days = getTrialDaysLeft(trialInfo.ends_at);
+      return `체험 ${days}일 · 오늘 ${planInfo.remaining}회 남음`;
     }
     if (planInfo.type === "monthly") {
-      return `Standard · ${planInfo.remaining}회 남음`;
+      if (plan === "free") {
+        return `무료 · 이번 달 ${planInfo.remaining}회 남음`;
+      }
+      return `${planInfo.label} · ${planInfo.remaining}회 남음`;
     }
   }
   return `${creditsLeft ?? 0} 크레딧`;

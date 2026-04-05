@@ -85,6 +85,22 @@ export async function POST(request: Request) {
     throw e;
   }
 
+  // Idempotency: skip already-processed events (Stripe retries)
+  const { data: existingEvent } = await supabase
+    .from("webhook_events")
+    .select("id")
+    .eq("stripe_event_id", event.id)
+    .maybeSingle();
+  if (existingEvent) {
+    console.log("[webhook] duplicate event skipped:", event.id);
+    return NextResponse.json({ received: true, duplicate: true }, { status: 200 });
+  }
+  await supabase.from("webhook_events").insert({
+    stripe_event_id: event.id,
+    event_type: event.type,
+    processed_at: new Date().toISOString(),
+  });
+
   try {
     switch (event.type) {
       case "checkout.session.completed": {
@@ -132,63 +148,47 @@ export async function POST(request: Request) {
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
         const priceId = subscription.items.data[0]?.price?.id ?? null;
         const plan: PlanType = getPlanFromPriceId(priceId);
-        const userId = (subscription.metadata?.user_id as string) ?? null;
         const periodEnd = periodTs(subscription as { current_period_end?: number }).end;
-        if (!userId) {
+
+        // Resolve user ID: prefer metadata, fall back to subscriptions table
+        let uid = (subscription.metadata?.user_id as string) ?? null;
+        if (!uid) {
           const { data: subRow } = await supabase
             .from("subscriptions")
             .select("user_id")
             .eq("stripe_subscription_id", subscriptionId)
             .maybeSingle();
-          const uid = subRow?.user_id;
-          if (!uid) {
-            console.warn("[webhook] invoice.paid no user_id for subscription", subscriptionId);
-            break;
-          }
-          const { error: userErr } = await supabase
-            .from("users")
-            .update({
-              plan,
-              credit_balance: PLAN_CREDITS[plan],
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", uid);
-          if (userErr) {
-            console.error("[webhook] users update failed:", userErr);
-            return NextResponse.json({ error: "DB error" }, { status: 500 });
-          }
-          await supabase
-            .from("subscriptions")
-            .update({
-              plan,
-              stripe_price_id: priceId,
-              current_period_end: periodEnd,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("stripe_subscription_id", subscriptionId);
-        } else {
-          const { error: userErr } = await supabase
-            .from("users")
-            .update({
-              plan,
-              credit_balance: PLAN_CREDITS[plan],
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", userId);
-          if (userErr) {
-            console.error("[webhook] users update failed:", userErr);
-            return NextResponse.json({ error: "DB error" }, { status: 500 });
-          }
-          await supabase
-            .from("subscriptions")
-            .update({
-              plan,
-              stripe_price_id: priceId,
-              current_period_end: periodEnd,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("stripe_subscription_id", subscriptionId);
+          uid = subRow?.user_id ?? null;
         }
+        if (!uid) {
+          console.warn("[webhook] invoice.paid no user_id for subscription", subscriptionId);
+          break;
+        }
+
+        const credits = PLAN_CREDITS[plan];
+        console.log("[webhook] invoice.paid: plan=%s credits=%d uid=%s", plan, credits, uid);
+
+        const { error: userErr } = await supabase
+          .from("users")
+          .update({
+            plan,
+            credit_balance: credits,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", uid);
+        if (userErr) {
+          console.error("[webhook] users update failed:", userErr);
+          return NextResponse.json({ error: "DB error" }, { status: 500 });
+        }
+        await supabase
+          .from("subscriptions")
+          .update({
+            plan,
+            stripe_price_id: priceId,
+            current_period_end: periodEnd,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("stripe_subscription_id", subscriptionId);
         break;
       }
 
@@ -221,6 +221,33 @@ export async function POST(request: Request) {
           .eq("stripe_subscription_id", subscriptionId);
         if (updErr) {
           console.error("[webhook] subscription updated failed:", updErr);
+        }
+
+        // Sync users.plan immediately on subscription change (covers Stripe dashboard edits, immediate upgrades)
+        if (status === "active" && plan !== "free") {
+          const subUserId = (subscription.metadata?.user_id as string) ?? null;
+          const { data: subRow } = !subUserId
+            ? await supabase
+                .from("subscriptions")
+                .select("user_id")
+                .eq("stripe_subscription_id", subscriptionId)
+                .maybeSingle()
+            : { data: { user_id: subUserId } };
+          const resolvedUid = subRow?.user_id;
+          if (resolvedUid) {
+            const { error: syncErr } = await supabase
+              .from("users")
+              .update({
+                plan,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", resolvedUid);
+            if (syncErr) {
+              console.error("[webhook] users plan sync failed:", syncErr);
+            } else {
+              console.log("[webhook] users.plan synced to", plan, "for", resolvedUid);
+            }
+          }
         }
         break;
       }

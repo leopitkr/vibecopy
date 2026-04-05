@@ -40,9 +40,14 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // If user is logged in, check onboarding status for protected routes
+  // If user is logged in, redirect landing page to /generate
   if (user) {
     const pathname = request.nextUrl.pathname;
+
+    if (pathname === "/") {
+      return NextResponse.redirect(new URL("/generate", request.url));
+    }
+
     const isProtected = PROTECTED_ROUTES.some((r) => pathname.startsWith(r));
     const isAllowed = ONBOARDING_ALLOWED.some((r) => pathname.startsWith(r));
 

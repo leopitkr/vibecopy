@@ -9,13 +9,13 @@ function safeReturnUrl(raw: string | null): string {
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
+  const intent = searchParams.get("intent"); // "signin" | "signup"
   const returnUrl = safeReturnUrl(searchParams.get("returnUrl"));
 
   if (code) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      // Check if user has completed onboarding
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -26,12 +26,29 @@ export async function GET(request: Request) {
           .eq("id", user.id)
           .maybeSingle();
 
-        // Redirect to onboarding unless profile exists with onboarding_completed === true
-        if (!profile?.onboarding_completed) {
+        // 1) Existing user, onboarding done → returnUrl
+        if (profile?.onboarding_completed) {
+          return NextResponse.redirect(`${origin}${returnUrl}`);
+        }
+
+        // 2) Existing user, onboarding incomplete → resume onboarding
+        if (profile) {
           return NextResponse.redirect(
             `${origin}/onboarding?returnUrl=${encodeURIComponent(returnUrl)}`
           );
         }
+
+        // 3) New user (no profile) — intent decides next step
+        if (intent === "signup") {
+          // signup intent: terms already agreed → straight to onboarding
+          return NextResponse.redirect(
+            `${origin}/onboarding?returnUrl=${encodeURIComponent(returnUrl)}`
+          );
+        }
+        // signin intent or missing: needs terms agreement
+        return NextResponse.redirect(
+          `${origin}/login?mode=signup-complete&returnUrl=${encodeURIComponent(returnUrl)}`
+        );
       }
 
       return NextResponse.redirect(`${origin}${returnUrl}`);

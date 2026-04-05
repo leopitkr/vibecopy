@@ -29,7 +29,7 @@ export function SocialLoginButtons({
       const { error: err } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?returnUrl=${encodeURIComponent(returnUrl)}`,
+          redirectTo: `${window.location.origin}/auth/callback?intent=${mode}&returnUrl=${encodeURIComponent(returnUrl)}`,
         },
       });
       if (err) {
