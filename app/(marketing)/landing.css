@@ -639,6 +639,126 @@
   color: white !important;
 }
 
+/* ==========================================
+   ChatGPT Comparison Card
+   ========================================== */
+
+.landing-page .comparison-card {
+  padding: 2rem 2.5rem !important;
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 16px !important;
+  margin-top: 1rem !important;
+}
+
+.landing-page .comparison-title {
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  color: var(--text-primary) !important;
+  text-align: center !important;
+  margin-bottom: 1.5rem !important;
+}
+
+.landing-page .comparison-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 1.5rem !important;
+}
+
+.landing-page .comparison-col {
+  padding: 1.25rem !important;
+  border-radius: 12px !important;
+}
+
+.landing-page .comparison-col-before {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+.landing-page .comparison-col-after {
+  background: rgba(99, 102, 241, 0.08) !important;
+  border: 1px solid rgba(99, 102, 241, 0.2) !important;
+}
+
+.landing-page .comparison-col-label {
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  color: var(--text-muted) !important;
+  margin-bottom: 0.875rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.03em !important;
+}
+
+.landing-page .comparison-col-after .comparison-col-label {
+  color: var(--indigo-400) !important;
+}
+
+.landing-page .comparison-list {
+  list-style: none !important;
+  padding: 0 !important;
+  margin: 0 0 1rem 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.5rem !important;
+}
+
+.landing-page .comparison-list li {
+  font-size: 0.9rem !important;
+  color: var(--text-secondary) !important;
+  padding-left: 1.25rem !important;
+  position: relative !important;
+}
+
+.landing-page .comparison-list li::before {
+  content: "·" !important;
+  position: absolute !important;
+  left: 0 !important;
+  color: var(--text-muted) !important;
+  font-weight: bold !important;
+}
+
+.landing-page .comparison-list-check li::before {
+  content: "✓" !important;
+  color: var(--emerald-400) !important;
+  font-size: 0.8rem !important;
+}
+
+.landing-page .comparison-time {
+  font-size: 0.8rem !important;
+  color: var(--text-muted) !important;
+  font-weight: 500 !important;
+  margin: 0 !important;
+}
+
+.landing-page .comparison-time-highlight {
+  color: var(--emerald-400) !important;
+  font-weight: 700 !important;
+  font-size: 0.9rem !important;
+}
+
+.landing-page .comparison-bottom {
+  text-align: center !important;
+  margin-top: 1.5rem !important;
+  padding-top: 1rem !important;
+  border-top: 1px solid var(--border-color) !important;
+  font-size: 0.9rem !important;
+  color: var(--text-secondary) !important;
+}
+
+.landing-page .comparison-bottom strong {
+  color: var(--indigo-400) !important;
+}
+
+@media (max-width: 640px) {
+  .landing-page .comparison-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .landing-page .comparison-card {
+    padding: 1.5rem !important;
+  }
+}
+
 /* Content Page (Guide, FAQ) */
 .landing-page .content-section {
   padding: 8rem 2rem 4rem !important;
@@ -1802,6 +1922,80 @@
   line-height: 1.7 !important;
   color: var(--text-secondary) !important;
   white-space: pre-wrap !important;
+}
+
+/* ==========================================
+   Usage Tip Card Styles
+   ========================================== */
+
+.landing-page .usage-tip-card {
+  margin-top: 1rem !important;
+  padding: 1.25rem 1.5rem !important;
+  background: rgba(99, 102, 241, 0.06) !important;
+  border: 1px solid rgba(99, 102, 241, 0.15) !important;
+  border-radius: 12px !important;
+}
+
+.landing-page .usage-tip-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  margin-bottom: 0.875rem !important;
+}
+
+.landing-page .usage-tip-icon {
+  color: var(--indigo-400) !important;
+  flex-shrink: 0 !important;
+}
+
+.landing-page .usage-tip-title {
+  font-size: 0.95rem !important;
+  font-weight: 600 !important;
+  color: var(--text-primary) !important;
+}
+
+.landing-page .usage-tip-steps {
+  list-style: none !important;
+  padding: 0 !important;
+  margin: 0 0 0.875rem 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.5rem !important;
+  counter-reset: tip-step !important;
+}
+
+.landing-page .usage-tip-step {
+  counter-increment: tip-step !important;
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 0.625rem !important;
+  font-size: 0.875rem !important;
+  line-height: 1.5 !important;
+  color: var(--text-secondary) !important;
+}
+
+.landing-page .usage-tip-step::before {
+  content: counter(tip-step) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 20px !important;
+  height: 20px !important;
+  border-radius: 50% !important;
+  background: rgba(99, 102, 241, 0.15) !important;
+  color: var(--indigo-400) !important;
+  font-size: 0.7rem !important;
+  font-weight: 600 !important;
+  flex-shrink: 0 !important;
+}
+
+.landing-page .usage-tip-closing {
+  font-size: 0.8rem !important;
+  color: var(--indigo-400) !important;
+  font-weight: 500 !important;
+  margin: 0 !important;
+  padding-top: 0.5rem !important;
+  border-top: 1px solid rgba(99, 102, 241, 0.1) !important;
 }
 
 /* ==========================================

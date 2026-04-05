@@ -208,9 +208,9 @@ function WelcomeContent() {
                 </svg>
               </div>
               <div>
-                <p style={{ fontSize: "0.95rem", fontWeight: 600 }}>매일 3회 무료 생성</p>
+                <p style={{ fontSize: "0.95rem", fontWeight: 600 }}>매일 5회 무료 생성</p>
                 <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", lineHeight: 1.4 }}>
-                  트라이얼 기간 동안 매일 3번 무료로 생성할 수 있어요
+                  트라이얼 기간 동안 매일 5번 무료로 생성할 수 있어요
                 </p>
               </div>
             </div>

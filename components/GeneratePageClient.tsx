@@ -96,11 +96,15 @@ const ERROR_MESSAGES: Record<string, { title: string; description: string }> = {
   },
   AI_FAILED: {
     title: "일시적인 문제가 발생했습니다",
-    description: "잠시 후 다시 시도해주세요. 문제가 계속되면 입력 내용을 줄여보세요.",
+    description: "크레딧이 자동으로 환급되었습니다. 잠시 후 다시 시도해주세요.",
   },
   INTERNAL: {
     title: "일시적인 오류가 발생했습니다",
-    description: "잠시 후 다시 시도해주세요.",
+    description: "크레딧이 자동으로 환급되었습니다. 잠시 후 다시 시도해주세요.",
+  },
+  SERVER_MISCONFIGURED: {
+    title: "서버 설정 오류가 발생했습니다",
+    description: "크레딧이 자동으로 환급되었습니다. 잠시 후 다시 시도해주세요.",
   },
 };
 
@@ -825,7 +829,7 @@ export function GeneratePageClient() {
                     <p className="generate-error-desc">{getErrorInfo(error.code).description}</p>
                   </div>
                 </div>
-                {(error.code === "AI_FAILED" || error.code === "INTERNAL" || error.code === "RATE_LIMIT_EXCEEDED") && (
+                {(error.code === "AI_FAILED" || error.code === "INTERNAL" || error.code === "SERVER_MISCONFIGURED" || error.code === "RATE_LIMIT_EXCEEDED") && (
                   <button type="button" onClick={onRetry} className="generate-retry-btn">
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path

@@ -94,6 +94,65 @@ const CHANNEL_VISIBLE_SECTIONS: Record<Channel, ChannelVisibility> = {
   },
 };
 
+type UsageTip = {
+  title: string;
+  steps: string[];
+  closing: string;
+};
+
+const CHANNEL_USAGE_TIPS: Record<Channel, UsageTip> = {
+  smartstore: {
+    title: "스마트스토어에 이렇게 쓰세요",
+    steps: [
+      "헤드라인 2~3개를 골라 상품명에 활용",
+      "핵심 문구를 상세페이지 상단에 배치",
+      "구매 유도 문구를 CTA 버튼 근처에 삽입",
+      "리뷰 유도 문구를 배송 완료 메시지에 활용",
+    ],
+    closing: "이 구조로 작성하면 클릭률과 전환율이 올라갑니다",
+  },
+  coupang: {
+    title: "쿠팡에 이렇게 쓰세요",
+    steps: [
+      "타이틀 후보 중 키워드 포함된 것을 상품명으로 선택",
+      "불릿포인트를 상품 요약에 그대로 복붙",
+      "구매 이유를 상세설명 도입부에 배치",
+      "검색 키워드를 태그와 광고에 활용",
+    ],
+    closing: "검색 노출 + 전환율을 동시에 올릴 수 있습니다",
+  },
+  social: {
+    title: "SNS에 이렇게 쓰세요",
+    steps: [
+      "캡션 중 후킹이 강한 1개를 피드 첫 줄에 배치",
+      "스토리 문구를 이미지 위에 텍스트로 삽입",
+      "DM 멘트를 스토리 CTA로 활용",
+      "댓글 유도 문구를 캡션 마지막에 추가",
+    ],
+    closing: "참여율(댓글/DM)이 올라가면 알고리즘 노출도 올라갑니다",
+  },
+  shortform: {
+    title: "숏폼에 이렇게 쓰세요",
+    steps: [
+      "후킹 라인을 영상 첫 3초에 자막으로 삽입",
+      "본문 포인트를 나레이션 대본에 활용",
+      "CTA 문구를 영상 마지막 + 고정 댓글에 배치",
+      "댓글 유도 문구를 캡션에 추가",
+    ],
+    closing: "첫 3초 이탈률을 낮추면 조회수가 크게 올라갑니다",
+  },
+  affiliate: {
+    title: "블로그/제휴에 이렇게 쓰세요",
+    steps: [
+      "블로그 제목 후보 중 검색 키워드 포함된 것 선택",
+      "도입부 문구를 글 첫 문단에 배치",
+      "추천 문구를 본문 중간 CTA로 삽입",
+      "마무리 CTA를 구매 링크 바로 위에 배치",
+    ],
+    closing: "검색 유입 → 신뢰 구축 → 전환 순서로 배치하면 효과적입니다",
+  },
+};
+
 type CopyPackageViewProps = {
   output: GenerateOutput;
   channel: Channel;
@@ -257,6 +316,8 @@ export function CopyPackageView({ output, channel }: CopyPackageViewProps) {
     ] : []),
   ].join("\n");
 
+  const usageTip = CHANNEL_USAGE_TIPS[channel] ?? CHANNEL_USAGE_TIPS.smartstore;
+
   return (
     <div className="output-container">
       {/* Header */}
@@ -387,6 +448,24 @@ export function CopyPackageView({ output, channel }: CopyPackageViewProps) {
             </div>
           </OutputSection>
         )}
+
+        {/* Usage Tip */}
+        <div className="usage-tip-card">
+          <div className="usage-tip-header">
+            <svg className="usage-tip-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 18h6" />
+              <path d="M10 22h4" />
+              <path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z" />
+            </svg>
+            <span className="usage-tip-title">{usageTip.title}</span>
+          </div>
+          <ol className="usage-tip-steps">
+            {usageTip.steps.map((step, i) => (
+              <li key={i} className="usage-tip-step">{step}</li>
+            ))}
+          </ol>
+          <p className="usage-tip-closing">{usageTip.closing}</p>
+        </div>
       </div>
     </div>
   );

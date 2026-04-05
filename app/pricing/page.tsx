@@ -189,6 +189,40 @@ export default function PricingPage() {
                 {error}
               </div>
             )}
+          </div>
+        </section>
+
+        {/* ChatGPT Comparison Section */}
+        <section>
+          <div className="section-inner" style={{ maxWidth: "800px" }}>
+            <div className="comparison-card">
+              <h3 className="comparison-title">ChatGPT로 직접 하면?</h3>
+              <div className="comparison-grid">
+                <div className="comparison-col comparison-col-before">
+                  <p className="comparison-col-label">ChatGPT로 직접 할 때</p>
+                  <ul className="comparison-list">
+                    <li>프롬프트 작성 (매번 수정)</li>
+                    <li>결과물 정리 + 포맷팅</li>
+                    <li>채널별로 톤/구조 다시 수정</li>
+                    <li>상품마다 반복 작업</li>
+                  </ul>
+                  <p className="comparison-time">상품 1개당 15~30분</p>
+                </div>
+                <div className="comparison-col comparison-col-after">
+                  <p className="comparison-col-label">VibeCopy</p>
+                  <ul className="comparison-list comparison-list-check">
+                    <li>상품 정보 입력 → 바로 완성</li>
+                    <li>채널/톤 자동 최적화</li>
+                    <li>복사 버튼으로 바로 사용</li>
+                    <li>전문 셀러용 카피 구조</li>
+                  </ul>
+                  <p className="comparison-time comparison-time-highlight">상품 1개당 30초</p>
+                </div>
+              </div>
+              <p className="comparison-bottom">
+                AI가 아니라 <strong>시간 절약 + 바로 사용</strong>이 핵심입니다
+              </p>
+            </div>
 
             <p className="help-text">
               질문이 있으시면{" "}
